@@ -11,6 +11,9 @@ pub enum PrefixFunctionError {
     NoPrefixFunction,
     IntegerParseError,
     ParentheseError,
+    PrefixExpressionError,
+    IfExpressionError,
+    FunctionLiteralError,
 }
 #[derive(Debug)]
 pub enum InfixFunctionError {
