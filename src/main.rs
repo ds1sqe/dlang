@@ -1,5 +1,5 @@
-use dlang::token;
+use dlang::repl::start;
 
 fn main() {
-    println!("Hello, world!");
+    start()
 }
