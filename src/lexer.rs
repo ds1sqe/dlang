@@ -55,7 +55,7 @@ impl Lexer {
         while !self.peek_char().is_whitespace() && self.peek_char().is_alphanumeric() {
             self.read_char();
         }
-        self.input[start..self.pos].to_string()
+        self.input[start..self.pos + 1].to_string()
     }
 
     fn read_num(&mut self) -> Result<String, error::LexerError> {
@@ -71,7 +71,7 @@ impl Lexer {
             }
             self.read_char();
         }
-        Ok(self.input[start..self.pos].to_string())
+        Ok(self.input[start..self.pos + 1].to_string())
     }
 
     /// get next token
@@ -156,7 +156,7 @@ impl Lexer {
                 }
             }
         }
+        self.read_char();
         token
     }
 }
-

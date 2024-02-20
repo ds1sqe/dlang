@@ -1,6 +1,7 @@
 type TokenKind = String;
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct Token {
     pub kind: TokenKind,
     pub literal: String,
