@@ -2,7 +2,7 @@
 
 use crate::token;
 use crate::token::Token;
-pub mod error;
+pub mod errors;
 
 pub struct Lexer {
     input: String,
@@ -58,11 +58,11 @@ impl Lexer {
         self.input[start..self.pos + 1].to_string()
     }
 
-    fn read_num(&mut self) -> Result<String, error::LexerError> {
+    fn read_num(&mut self) -> Result<String, errors::LexerError> {
         let start = self.pos;
         while !self.peek_char().is_whitespace() && self.peek_char().is_alphanumeric() {
             if self.peek_char().is_alphabetic() {
-                let err = error::LexerError {
+                let err = errors::LexerError {
                     pos_start: start,
                     pos_end: self.pos,
                     reason: self.input[start..self.pos + 1].to_string() + " is not a numeric",
@@ -78,67 +78,67 @@ impl Lexer {
     pub fn next(&mut self) -> Token {
         self.skip_whitespace();
 
-        let mut token: Token = Token::new(token::ILLEGAL);
+        let mut token: Token = Token::new(token::Kind::Illegal);
 
         match self.cur {
-            '+' => token = Token::new(token::PLUS),
-            '-' => token = Token::new(token::MINUS),
-            '*' => token = Token::new(token::PRODUCT),
-            '/' => token = Token::new(token::DIV),
-            '%' => token = Token::new(token::MOD),
-            '(' => token = Token::new(token::LPAREN),
-            ')' => token = Token::new(token::RPAREN),
-            '{' => token = Token::new(token::LBRACE),
-            '}' => token = Token::new(token::RBRACE),
-            ',' => token = Token::new(token::COMMA),
-            ';' => token = Token::new(token::SEMICOLON),
-            '\0' => token = Token::new(token::EOF),
+            '+' => token = Token::new(token::Kind::Plus),
+            '-' => token = Token::new(token::Kind::Minus),
+            '*' => token = Token::new(token::Kind::Product),
+            '/' => token = Token::new(token::Kind::Divide),
+            '%' => token = Token::new(token::Kind::Mod),
+            '(' => token = Token::new(token::Kind::LPAREN),
+            ')' => token = Token::new(token::Kind::RPAREN),
+            '{' => token = Token::new(token::Kind::LBRACE),
+            '}' => token = Token::new(token::Kind::RBRACE),
+            ',' => token = Token::new(token::Kind::Comma),
+            ';' => token = Token::new(token::Kind::Semicolon),
+            '\0' => token = Token::new(token::Kind::EOF),
             '=' => {
                 if self.peek_char() == '=' {
                     self.read_char();
-                    token = Token::new(token::EQ);
+                    token = Token::new(token::Kind::EQ);
                 } else {
-                    token = Token::new(token::ASSIGN);
+                    token = Token::new(token::Kind::Assign);
                 }
             }
             '!' => {
                 if self.peek_char() == '=' {
                     self.read_char();
-                    token = Token::new(token::NOT_EQ);
+                    token = Token::new(token::Kind::NOT_EQ);
                 } else {
-                    token = Token::new(token::BANG);
+                    token = Token::new(token::Kind::Bang);
                 }
             }
             '<' => {
                 if self.peek_char() == '=' {
                     self.read_char();
-                    token = Token::new(token::LT_OR_EQ);
+                    token = Token::new(token::Kind::LT_OR_EQ);
                 } else {
-                    token = Token::new(token::LT);
+                    token = Token::new(token::Kind::LT);
                 }
             }
             '>' => {
                 if self.peek_char() == '=' {
                     self.read_char();
-                    token = Token::new(token::GT_OR_EQ);
+                    token = Token::new(token::Kind::GT_OR_EQ);
                 } else {
-                    token = Token::new(token::GT);
+                    token = Token::new(token::Kind::GT);
                 }
             }
             '&' => {
                 if self.peek_char() == '&' {
                     self.read_char();
-                    token = Token::new(token::AND);
+                    token = Token::new(token::Kind::And);
                 } else {
-                    token = Token::new(token::BIT_AND);
+                    token = Token::new(token::Kind::Bit_And);
                 }
             }
             '|' => {
                 if self.peek_char() == '|' {
                     self.read_char();
-                    token = Token::new(token::OR);
+                    token = Token::new(token::Kind::Or);
                 } else {
-                    token = Token::new(token::BIT_OR);
+                    token = Token::new(token::Kind::Bit_Or);
                 }
             }
             any => {
@@ -149,7 +149,7 @@ impl Lexer {
                     let read_result = self.read_num();
                     if read_result.is_ok() {
                         token.literal = read_result.unwrap();
-                        token.kind = token::INT.to_string();
+                        token.kind = token::Kind::Int;
                     } else {
                         token.literal = read_result.err().unwrap().reason;
                     }

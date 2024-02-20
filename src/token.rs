@@ -1,90 +1,131 @@
-type TokenKind = String;
+#[allow(non_camel_case_types)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Kind {
+    // Operators
+    Assign,
+    Plus,
+    Minus,
+    Product,
+    Divide,
+    Mod,
+    Bang,
+
+    // Compare
+    LT,
+    LT_OR_EQ,
+    GT,
+    GT_OR_EQ,
+    EQ,
+    NOT_EQ,
+
+    // Boolean And, Or
+    And,
+    Or,
+    // Bit And, Or
+    Bit_And,
+    Bit_Or,
+
+    Comma,
+    Semicolon,
+
+    LPAREN,
+    RPAREN,
+    LBRACE,
+    RBRACE,
+    // keywords
+    Illegal,
+    EOF,
+    Ident,
+    Function,
+    Let,
+    True,
+    False,
+    If,
+    Else,
+    Return,
+    Int,
+}
+
+impl Kind {
+    pub fn to_str(&self) -> &str {
+        match self {
+            Kind::Assign => "=",
+            Kind::Plus => "+",
+            Kind::Minus => "-",
+            Kind::Product => "*",
+            Kind::Divide => "/",
+            Kind::Mod => "%",
+            Kind::Bang => "!",
+
+            // Compare
+            Kind::LT => "<",
+            Kind::LT_OR_EQ => "<=",
+            Kind::GT => ">",
+            Kind::GT_OR_EQ => ">=",
+            Kind::EQ => "==",
+            Kind::NOT_EQ => "!=",
+
+            // Boolean And, Or
+            Kind::And => "&&",
+            Kind::Or => "||",
+            // Bit And, Or
+            Kind::Bit_And => "&",
+            Kind::Bit_Or => "|",
+
+            Kind::Comma => ",",
+            Kind::Semicolon => ";",
+
+            Kind::LPAREN => "(",
+            Kind::RPAREN => ")",
+            Kind::LBRACE => "{",
+            Kind::RBRACE => "}",
+            // keywords
+            Kind::Illegal => "Illegal",
+            Kind::EOF => "EOF",
+            Kind::Function => "fn",
+            Kind::Ident => "Ident",
+            Kind::Let => "let",
+            Kind::True => "true",
+            Kind::False => "false",
+            Kind::If => "if",
+            Kind::Else => "else",
+            Kind::Return => "return",
+            Kind::Int => "Int",
+        }
+    }
+}
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Token {
-    pub kind: TokenKind,
+    pub kind: Kind,
     pub literal: String,
 }
 
 impl Token {
-    pub fn new(kind: &str) -> Self {
+    pub fn new(kind: Kind) -> Self {
         Token {
-            kind: kind.to_string(),
-            literal: kind.to_string(),
+            kind,
+            literal: kind.to_str().to_string(),
         }
     }
-    pub fn with(kind: &str, literal: &str) -> Self {
+    pub fn with(kind: Kind, literal: &str) -> Self {
         Token {
-            kind: kind.to_string(),
+            kind,
             literal: literal.to_string(),
         }
     }
 }
 
-macro_rules! add_token {
-    ($x:ident) => {
-        pub const $x: &str = stringify!($x);
-    };
-    ($x:ident,$y:expr) => {
-        pub const $x: &str = $y;
-    };
-}
-
-// Operators
-add_token!(ASSIGN, "=");
-add_token!(PLUS, "+");
-add_token!(MINUS, "-");
-add_token!(PRODUCT, "*");
-add_token!(DIV, "/");
-add_token!(MOD, "%");
-add_token!(BANG, "!");
-
-// Compare
-add_token!(LT, "<");
-add_token!(LT_OR_EQ, "<=");
-add_token!(GT, ">");
-add_token!(GT_OR_EQ, ">=");
-add_token!(EQ, "==");
-add_token!(NOT_EQ, "!=");
-
-// Boolean And, Or
-add_token!(AND, "&&");
-add_token!(OR, "||");
-// Bit And, Or
-add_token!(BIT_AND, "&");
-add_token!(BIT_OR, "|");
-
-add_token!(COMMA, ",");
-add_token!(SEMICOLON, ";");
-
-add_token!(LPAREN, "(");
-add_token!(RPAREN, ")");
-add_token!(LBRACE, "{");
-add_token!(RBRACE, "}");
-
-// keywords
-add_token!(ILLEGAL);
-add_token!(EOF);
-add_token!(IDENT);
-add_token!(FUNCTION);
-add_token!(LET);
-add_token!(TRUE);
-add_token!(FALSE);
-add_token!(IF);
-add_token!(ELSE);
-add_token!(RETURN);
-add_token!(INT);
-
-pub fn get_token_kind(word: &str) -> TokenKind {
+pub fn get_token_kind(word: &str) -> Kind {
     match word {
-        "fn" => String::from(FUNCTION),
-        "let" => String::from(LET),
-        "true" => String::from(TRUE),
-        "false" => String::from(FALSE),
-        "if" => String::from(IF),
-        "else" => String::from(ELSE),
-        "return" => String::from(RETURN),
-        &_ => String::from(IDENT),
+        "fn" => Kind::Function,
+        "let" => Kind::Let,
+        "true" => Kind::True,
+        "false" => Kind::False,
+        "if" => Kind::If,
+        "else" => Kind::Else,
+        "return" => Kind::Return,
+        &_ => Kind::Ident,
     }
 }

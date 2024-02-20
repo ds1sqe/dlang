@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::token;
 
 pub trait Node {
@@ -5,27 +7,29 @@ pub trait Node {
     fn to_str(&self) -> String;
 }
 
-pub trait Statement: Node {}
+pub trait Statement: Node + Debug {}
 
-pub trait Expression: Node {}
+pub trait Expression: Node + Debug {}
 
-pub struct Program<'a> {
-    pub statements: Vec<Box<&'a dyn Statement>>,
+#[derive(Debug)]
+pub struct Program {
+    pub statements: Vec<Box<dyn Statement>>,
 }
-impl<'a> Program<'a> {
+impl Program {
     pub fn new() -> Self {
         Program {
             statements: Vec::new(),
         }
     }
-    pub fn push_stm(mut self, stm: &'a dyn Statement) {
-        self.statements.push(Box::new(stm));
+    pub fn push_stm(&mut self, stm: Box<dyn Statement>) {
+        self.statements.push(stm);
     }
 }
 
+#[derive(Debug)]
 pub struct Identifier {
-    token: token::Token, // token::IDENT
-    value: String,
+    pub token: token::Token, // token::IDENT
+    pub value: String,
 }
 
 impl Node for Identifier {
@@ -38,13 +42,46 @@ impl Node for Identifier {
 }
 impl Expression for Identifier {}
 
-pub struct LetStatement<'a> {
-    token: token::Token,
-    identifier: &'a mut Identifier,
-    value: Option<Box<dyn Expression>>,
+#[derive(Debug)]
+pub struct IntegerLiteral {
+    pub token: token::Token, // token::Int
+    pub value: i64,
 }
 
-impl<'a> Node for LetStatement<'a> {
+impl Node for IntegerLiteral {
+    fn literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn to_str(&self) -> String {
+        self.value.clone().to_string()
+    }
+}
+impl Expression for IntegerLiteral {}
+
+#[derive(Debug)]
+pub struct BooleanLiteral {
+    pub token: token::Token, // token::False of True
+    pub value: bool,
+}
+
+impl Node for BooleanLiteral {
+    fn literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn to_str(&self) -> String {
+        self.value.clone().to_string()
+    }
+}
+impl Expression for BooleanLiteral {}
+
+#[derive(Debug)]
+pub struct LetStatement {
+    pub token: token::Token,
+    pub identifier: Identifier,
+    pub value: Option<Box<dyn Expression>>,
+}
+
+impl Node for LetStatement {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -62,11 +99,12 @@ impl<'a> Node for LetStatement<'a> {
         buf
     }
 }
-impl<'a> Statement for LetStatement<'a> {}
+impl Statement for LetStatement {}
 
+#[derive(Debug)]
 pub struct ReturnStatement {
-    token: token::Token,
-    value: Option<Box<dyn Expression>>,
+    pub token: token::Token,
+    pub value: Option<Box<dyn Expression>>,
 }
 
 impl Node for ReturnStatement {
@@ -86,9 +124,10 @@ impl Node for ReturnStatement {
 }
 impl Statement for ReturnStatement {}
 
+#[derive(Debug)]
 pub struct ExpressionStatement {
-    token: token::Token,
-    expression: Option<Box<dyn Expression>>,
+    pub token: token::Token,
+    pub expression: Option<Box<dyn Expression>>,
 }
 impl Node for ExpressionStatement {
     fn literal(&self) -> String {
@@ -96,12 +135,59 @@ impl Node for ExpressionStatement {
     }
     fn to_str(&self) -> String {
         let mut buf = String::new();
-        buf.push_str(&self.literal());
+        buf.push_str("");
         if self.expression.is_some() {
-            buf.push_str(" = ");
-            buf.push_str(&self.expression.as_ref().unwrap().literal())
+            buf.push_str(&self.expression.as_ref().unwrap().to_str());
         }
         buf
     }
 }
 impl Statement for ExpressionStatement {}
+
+#[derive(Debug)]
+pub struct PrefixExpression {
+    pub token: token::Token,
+    pub operator: token::Token,
+    pub right: Box<dyn Expression>,
+}
+impl Node for PrefixExpression {
+    fn literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn to_str(&self) -> String {
+        let mut buf = String::new();
+        buf.push_str(&self.literal());
+        buf.push_str("( ");
+        buf.push_str(&self.operator.literal);
+        buf.push_str(" ");
+        buf.push_str(&self.right.to_str());
+        buf.push_str(" )");
+        buf
+    }
+}
+impl Expression for PrefixExpression {}
+
+#[derive(Debug)]
+pub struct InfixExpression {
+    pub token: token::Token,
+    pub left: Box<dyn Expression>,
+    pub operator: token::Token,
+    pub right: Box<dyn Expression>,
+}
+impl Node for InfixExpression {
+    fn literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn to_str(&self) -> String {
+        let mut buf = String::new();
+        buf.push_str("(");
+        buf.push_str(&self.left.to_str());
+        buf.push_str(" ");
+        buf.push_str(&self.operator.literal);
+        buf.push_str(" ");
+        buf.push_str(&self.right.to_str());
+        buf.push_str(")");
+        buf
+    }
+}
+impl Expression for InfixExpression {}
