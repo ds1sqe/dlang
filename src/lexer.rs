@@ -7,8 +7,15 @@ pub mod errors;
 pub struct Lexer {
     input: String,
     pos: usize,
+    line_num: usize,
     next_pos: usize,
     cur: char,
+}
+
+#[derive(Debug, Clone)]
+pub struct Position {
+    pub pos: usize,
+    pub line_num: usize,
 }
 
 impl Lexer {
@@ -19,6 +26,7 @@ impl Lexer {
         let mut lex = Lexer {
             input,
             pos: 0,
+            line_num: 0,
             next_pos: 0,
             cur: '\0',
         };
@@ -46,13 +54,18 @@ impl Lexer {
 
     fn skip_whitespace(&mut self) {
         while self.cur.is_whitespace() {
+            if self.cur == '\n' {
+                self.line_num += 1;
+            }
             self.read_char()
         }
     }
 
     fn read_id(&mut self) -> String {
         let start = self.pos;
-        while !self.peek_char().is_whitespace() && self.peek_char().is_alphanumeric() {
+        while !self.peek_char().is_whitespace()
+            && self.peek_char().is_alphanumeric()
+        {
             self.read_char();
         }
         self.input[start..self.pos + 1].to_string()
@@ -60,18 +73,28 @@ impl Lexer {
 
     fn read_num(&mut self) -> Result<String, errors::LexerError> {
         let start = self.pos;
-        while !self.peek_char().is_whitespace() && self.peek_char().is_alphanumeric() {
+        while !self.peek_char().is_whitespace()
+            && self.peek_char().is_alphanumeric()
+        {
             if self.peek_char().is_alphabetic() {
                 let err = errors::LexerError {
                     pos_start: start,
                     pos_end: self.pos,
-                    reason: self.input[start..self.pos + 1].to_string() + " is not a numeric",
+                    reason: self.input[start..self.pos + 1].to_string()
+                        + " is not a numeric",
                 };
                 return Err(err);
             }
             self.read_char();
         }
         Ok(self.input[start..self.pos + 1].to_string())
+    }
+
+    pub fn get_pos(&self) -> Position {
+        return Position {
+            line_num: self.line_num,
+            pos: self.pos,
+        };
     }
 
     /// get next token

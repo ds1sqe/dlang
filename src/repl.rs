@@ -16,10 +16,22 @@ pub fn start() {
                 let mut parser = Parser::new(lexer);
                 let program = parser.parse();
 
-                for stm in program.statements {
-                    println!("Debug output>> {:?}", stm);
-                    println!("To String >> {}", stm.to_str());
+                if program.is_ok() {
+                    for stm in program.ok().unwrap().statements {
+                        println!("Debug output>> {:?}", stm);
+                        println!("To String >> {}", stm.to_str());
+                    }
+                } else {
+                    println!("!!!> ERROR OCCURED <!!!");
+                    for errs in program.err().unwrap() {
+                        println!(">> ERROR DETAIL ");
+                        for err in errs {
+                            println!("Pos>> {:?}", err.as_ref().position());
+                            println!("Detail>> {} ", err.as_ref().detail());
+                        }
+                    }
                 }
+                buf.clear();
             }
             Err(err) => {
                 println!("Error occured during reading stdin");

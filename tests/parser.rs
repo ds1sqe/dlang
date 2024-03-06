@@ -12,7 +12,7 @@ fn test_let_statement() {
         let lexer = Lexer::new(input.clone());
 
         let mut parser = Parser::new(lexer);
-        let res = parser.parse();
+        let res = parser.parse().ok().unwrap();
         assert!(res.statements[0].to_str() == input);
     }
 }
@@ -29,7 +29,7 @@ fn test_return_statement() {
         let lexer = Lexer::new(input.clone());
 
         let mut parser = Parser::new(lexer);
-        let res = parser.parse();
+        let res = parser.parse().ok().unwrap();
         assert!(res.statements[0].to_str() == input);
     }
 }
@@ -44,23 +44,26 @@ fn test_bool_literal() {
         let lexer = Lexer::new(input.clone());
 
         let mut parser = Parser::new(lexer);
-        let res = parser.parse();
+        let res = parser.parse().ok().unwrap();
         assert!(res.statements[0].to_str() == input);
     }
 }
 
 #[test]
 fn test_parentheses() {
-    let mut inputs = Vec::new();
+    let mut tests = Vec::new();
 
-    inputs.push("((true || (false || true)))".to_string());
+    tests.push((
+        "((true || (false || true)))".to_string(),
+        "(true || (false || true))".to_string(),
+    ));
 
-    for input in inputs {
+    for (input, expect) in tests {
         let lexer = Lexer::new(input.clone());
 
         let mut parser = Parser::new(lexer);
-        let res = parser.parse();
-        assert!(res.statements[0].to_str() == input);
+        let res = parser.parse().ok().unwrap();
+        assert!(res.statements[0].to_str() == expect);
     }
 }
 
@@ -72,7 +75,7 @@ fn test_infix() {
     let lexer = Lexer::new(input.clone());
 
     let mut parser = Parser::new(lexer);
-    let res = parser.parse();
+    let res = parser.parse().ok().unwrap();
     assert!(res.statements[0].to_str() == expect);
 }
 
@@ -84,7 +87,7 @@ fn test_prefix_expression() {
     let lexer = Lexer::new(input.clone());
 
     let mut parser = Parser::new(lexer);
-    let res = parser.parse();
+    let res = parser.parse().ok().unwrap();
     let result = res.statements[0].to_str();
 
     assert!(result == expect);
@@ -107,9 +110,8 @@ fn test_if_expression() {
         let lexer = Lexer::new(input.clone());
 
         let mut parser = Parser::new(lexer);
-        let res = parser.parse();
+        let res = parser.parse().ok().unwrap();
         let result = res.statements[0].to_str();
-
         assert!(result == expect);
     }
 }
@@ -126,7 +128,7 @@ fn test_call_expression() {
         let lexer = Lexer::new(input.clone());
 
         let mut parser = Parser::new(lexer);
-        let res = parser.parse();
+        let res = parser.parse().ok().unwrap();
         let result = res.statements[0].to_str();
 
         assert!(result == expect);
@@ -165,7 +167,7 @@ fn test_function_literal() {
         let lexer = Lexer::new(input.clone());
 
         let mut parser = Parser::new(lexer);
-        let res = parser.parse();
+        let res = parser.parse().ok().unwrap();
         let result = res.statements[0].to_str();
 
         assert!(result == expect);
