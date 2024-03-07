@@ -1,9 +1,7 @@
-use std::any::Any;
-
 use crate::{
     ast::{
-        BooleanLiteral, ExpressionStatement, IntegerLiteral, LetStatement, Node,
-        ReturnStatement, Statement,
+        BooleanLiteral, Expression, ExpressionStatement, FunctionLiteral, IntegerLiteral,
+        LetStatement, ReturnStatement, Statement,
     },
     object::{Bool, Int, Object},
 };
@@ -18,7 +16,7 @@ macro_rules! downcast {
 }
 
 pub fn manage_stm(stm: Box<dyn Statement>) {
-    let ref_ro = &stm as &dyn Any;
+    let ref_ro = stm.to_any();
 
     downcast!(ref_ro {
         let_stm is LetStatement=> {
@@ -26,14 +24,15 @@ pub fn manage_stm(stm: Box<dyn Statement>) {
         return_stm is ReturnStatement=> {
         },
         exp_stm is ExpressionStatement=> {
-        evaluate(Box::new(exp_stm));
+        let rst = evaluate(Box::new(exp_stm.expression.as_ref().unwrap().as_ref()));
+        println!("{:?}",rst);
         },
     } if_not_matched {
     });
 }
 
-pub fn evaluate(root: Box<dyn Node>) -> Result<Box<dyn Object>, ()> {
-    let ref_ro = &root as &dyn Any;
+pub fn evaluate(root: Box<&dyn Expression>) -> Result<Box<dyn Object>, bool> {
+    let ref_ro = root.to_any();
 
     downcast!(ref_ro {
         int_lit is IntegerLiteral => {
@@ -47,6 +46,7 @@ pub fn evaluate(root: Box<dyn Node>) -> Result<Box<dyn Object>, ()> {
             }));
         },
     } if_not_matched {
-      return Err(());
+      return Err(false)
     });
+    unreachable!()
 }

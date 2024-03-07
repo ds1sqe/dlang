@@ -3,7 +3,12 @@ use std::{
     io::{self, BufRead, Write},
 };
 
-use crate::{ast::Node, eval::evaluate, lexer::Lexer, parser::Parser};
+use crate::{
+    ast::Node,
+    eval::{evaluate, manage_stm},
+    lexer::Lexer,
+    parser::Parser,
+};
 
 const PROMPT: &str = "-> ";
 
@@ -23,8 +28,8 @@ pub fn start() {
                     for stm in program.ok().unwrap().statements {
                         println!("Debug output>> {:?}", stm);
                         println!("To String >> {}", stm.to_str());
-                        //
-                        //
+
+                        manage_stm(stm)
                     }
                 } else {
                     println!("!!!> ERROR OCCURED <!!!");

@@ -1,8 +1,12 @@
-use std::fmt::Debug;
+use std::{any::Any, fmt::Debug};
 
 use crate::token;
 
-pub trait Node: Debug {
+pub trait ToAny {
+    fn to_any(&self) -> &dyn Any;
+}
+
+pub trait Node: Debug + ToAny {
     fn literal(&self) -> String;
     fn to_str(&self) -> String;
 }
@@ -10,6 +14,12 @@ pub trait Node: Debug {
 pub trait Statement: Node + Debug {}
 
 pub trait Expression: Node + Debug {}
+
+impl<T: 'static> ToAny for T {
+    fn to_any(&self) -> &dyn Any {
+        self
+    }
+}
 
 #[derive(Debug)]
 pub struct Program {
