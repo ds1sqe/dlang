@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::token;
 
-pub trait Node {
+pub trait Node: Debug {
     fn literal(&self) -> String;
     fn to_str(&self) -> String;
 }
