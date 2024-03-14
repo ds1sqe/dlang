@@ -2,18 +2,88 @@ use std::fmt::Debug;
 
 use crate::token;
 
-pub trait Node: Debug {
+#[derive(Debug)]
+pub enum Node {
+    Statement(Statement),
+    Expression(Expression),
+}
+
+#[derive(Debug)]
+pub enum Statement {
+    LetStatement(LetStatement),
+    ExpressionStatement(ExpressionStatement),
+    ReturnStatement(ReturnStatement),
+    BlockStatement(BlockStatement),
+}
+
+#[derive(Debug)]
+pub enum Expression {
+    Identifier(Identifier),
+    IntegerLiteral(IntegerLiteral),
+    BooleanLiteral(BooleanLiteral),
+    FunctionLiteral(FunctionLiteral),
+    InfixExpression(InfixExpression),
+    PrefixExpression(PrefixExpression),
+    IfExpression(IfExpression),
+    CallExpression(CallExpression),
+}
+
+pub trait Nodetrait {
     fn literal(&self) -> String;
     fn to_str(&self) -> String;
 }
 
-pub trait Statement: Node + Debug {}
+impl Nodetrait for Statement {
+    fn literal(&self) -> String {
+        match self {
+            Statement::LetStatement(stm) => stm.literal(),
+            Statement::ExpressionStatement(stm) => stm.literal(),
+            Statement::ReturnStatement(stm) => stm.literal(),
+            Statement::BlockStatement(stm) => stm.literal(),
+        }
+    }
 
-pub trait Expression: Node + Debug {}
+    fn to_str(&self) -> String {
+        match self {
+            Statement::LetStatement(stm) => stm.to_str(),
+            Statement::ExpressionStatement(stm) => stm.to_str(),
+            Statement::ReturnStatement(stm) => stm.to_str(),
+            Statement::BlockStatement(stm) => stm.to_str(),
+        }
+    }
+}
+
+impl Nodetrait for Expression {
+    fn literal(&self) -> String {
+        match self {
+            Expression::Identifier(idt) => idt.literal(),
+            Expression::IntegerLiteral(int) => int.literal(),
+            Expression::BooleanLiteral(bool) => bool.literal(),
+            Expression::FunctionLiteral(flit) => flit.literal(),
+            Expression::InfixExpression(ifix) => ifix.literal(),
+            Expression::PrefixExpression(pfix) => pfix.literal(),
+            Expression::IfExpression(ifx) => ifx.literal(),
+            Expression::CallExpression(cexp) => cexp.literal(),
+        }
+    }
+
+    fn to_str(&self) -> String {
+        match self {
+            Expression::Identifier(idt) => idt.to_str(),
+            Expression::IntegerLiteral(int) => int.to_str(),
+            Expression::BooleanLiteral(bool) => bool.to_str(),
+            Expression::FunctionLiteral(flit) => flit.to_str(),
+            Expression::InfixExpression(ifix) => ifix.to_str(),
+            Expression::PrefixExpression(pfix) => pfix.to_str(),
+            Expression::IfExpression(ifx) => ifx.to_str(),
+            Expression::CallExpression(cexp) => cexp.to_str(),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Program {
-    pub statements: Vec<Box<dyn Statement>>,
+    pub statements: Vec<Statement>,
 }
 impl Program {
     pub fn new() -> Self {
@@ -21,7 +91,7 @@ impl Program {
             statements: Vec::new(),
         }
     }
-    pub fn push_stm(&mut self, stm: Box<dyn Statement>) {
+    pub fn push_stm(&mut self, stm: Statement) {
         self.statements.push(stm);
     }
 }
@@ -32,7 +102,7 @@ pub struct Identifier {
     pub value: String,
 }
 
-impl Node for Identifier {
+impl Nodetrait for Identifier {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -40,7 +110,6 @@ impl Node for Identifier {
         self.value.clone()
     }
 }
-impl Expression for Identifier {}
 
 #[derive(Debug)]
 pub struct IntegerLiteral {
@@ -48,7 +117,7 @@ pub struct IntegerLiteral {
     pub value: i64,
 }
 
-impl Node for IntegerLiteral {
+impl Nodetrait for IntegerLiteral {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -56,7 +125,6 @@ impl Node for IntegerLiteral {
         self.value.clone().to_string()
     }
 }
-impl Expression for IntegerLiteral {}
 
 #[derive(Debug)]
 pub struct BooleanLiteral {
@@ -64,7 +132,7 @@ pub struct BooleanLiteral {
     pub value: bool,
 }
 
-impl Node for BooleanLiteral {
+impl Nodetrait for BooleanLiteral {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -72,7 +140,6 @@ impl Node for BooleanLiteral {
         self.value.clone().to_string()
     }
 }
-impl Expression for BooleanLiteral {}
 
 #[derive(Debug)]
 pub struct FunctionLiteral {
@@ -82,7 +149,7 @@ pub struct FunctionLiteral {
     pub body: BlockStatement,
 }
 
-impl Node for FunctionLiteral {
+impl Nodetrait for FunctionLiteral {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -105,16 +172,15 @@ impl Node for FunctionLiteral {
         buf
     }
 }
-impl Expression for FunctionLiteral {}
 
 #[derive(Debug)]
 pub struct LetStatement {
     pub token: token::Token,
     pub identifier: Identifier,
-    pub value: Option<Box<dyn Expression>>,
+    pub value: Option<Expression>,
 }
 
-impl Node for LetStatement {
+impl Nodetrait for LetStatement {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -132,15 +198,14 @@ impl Node for LetStatement {
         buf
     }
 }
-impl Statement for LetStatement {}
 
 #[derive(Debug)]
 pub struct ReturnStatement {
     pub token: token::Token,
-    pub value: Option<Box<dyn Expression>>,
+    pub value: Option<Expression>,
 }
 
-impl Node for ReturnStatement {
+impl Nodetrait for ReturnStatement {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -155,15 +220,14 @@ impl Node for ReturnStatement {
         buf
     }
 }
-impl Statement for ReturnStatement {}
 
 #[derive(Debug)]
 pub struct BlockStatement {
     pub token: token::Token,
-    pub statements: Vec<Box<dyn Statement>>,
+    pub statements: Vec<Statement>,
 }
 
-impl Node for BlockStatement {
+impl Nodetrait for BlockStatement {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -175,14 +239,13 @@ impl Node for BlockStatement {
         buf
     }
 }
-impl Statement for BlockStatement {}
 
 #[derive(Debug)]
 pub struct ExpressionStatement {
     pub token: token::Token,
-    pub expression: Option<Box<dyn Expression>>,
+    pub expression: Option<Expression>,
 }
-impl Node for ExpressionStatement {
+impl Nodetrait for ExpressionStatement {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -195,14 +258,13 @@ impl Node for ExpressionStatement {
         buf
     }
 }
-impl Statement for ExpressionStatement {}
 
 #[derive(Debug)]
 pub struct PrefixExpression {
     pub token: token::Token,
-    pub right: Box<dyn Expression>,
+    pub right: Box<Expression>,
 }
-impl Node for PrefixExpression {
+impl Nodetrait for PrefixExpression {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -215,16 +277,15 @@ impl Node for PrefixExpression {
         buf
     }
 }
-impl Expression for PrefixExpression {}
 
 #[derive(Debug)]
 pub struct InfixExpression {
     pub token: token::Token,
-    pub left: Box<dyn Expression>,
+    pub left: Box<Expression>,
     pub operator: token::Token,
-    pub right: Box<dyn Expression>,
+    pub right: Box<Expression>,
 }
-impl Node for InfixExpression {
+impl Nodetrait for InfixExpression {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -240,16 +301,15 @@ impl Node for InfixExpression {
         buf
     }
 }
-impl Expression for InfixExpression {}
 
 #[derive(Debug)]
 pub struct IfExpression {
     pub token: token::Token, // Token::If
-    pub condition: Box<dyn Expression>,
+    pub condition: Box<Expression>,
     pub consequence: BlockStatement,
     pub alternative: Option<BlockStatement>,
 }
-impl Node for IfExpression {
+impl Nodetrait for IfExpression {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -269,15 +329,14 @@ impl Node for IfExpression {
         buf
     }
 }
-impl Expression for IfExpression {}
 
 #[derive(Debug)]
 pub struct CallExpression {
     pub token: token::Token, // Token::IDENT
-    pub function: Box<dyn Expression>,
-    pub arguments: Vec<Box<dyn Expression>>,
+    pub function: Box<Expression>,
+    pub arguments: Vec<Expression>,
 }
-impl Node for CallExpression {
+impl Nodetrait for CallExpression {
     fn literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -296,4 +355,3 @@ impl Node for CallExpression {
         buf
     }
 }
-impl Expression for CallExpression {}

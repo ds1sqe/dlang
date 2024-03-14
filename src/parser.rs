@@ -136,14 +136,12 @@ impl Parser {
         }
     }
 
-    fn parse_statement(
-        &mut self,
-    ) -> Result<Box<dyn Statement>, Vec<Box<dyn ParserError>>> {
+    fn parse_statement(&mut self) -> Result<Statement, Vec<Box<dyn ParserError>>> {
         match self.cur_token.kind {
             Kind::Let => {
                 let res = self.parse_let_statement();
                 if res.is_ok() {
-                    return Ok(Box::new(res.ok().unwrap()));
+                    return Ok(Statement::LetStatement(res.ok().unwrap()));
                 } else {
                     let mut err_vec: Vec<Box<dyn ParserError>> = Vec::new();
                     // deeper first.
@@ -159,7 +157,7 @@ impl Parser {
             Kind::Return => {
                 let res = self.parse_return_statement();
                 if res.is_ok() {
-                    return Ok(Box::new(res.unwrap()));
+                    return Ok(Statement::ReturnStatement(res.ok().unwrap()));
                 } else {
                     return Err(res.err().unwrap());
                 }
@@ -167,7 +165,7 @@ impl Parser {
             __ => {
                 let res = self.parse_expression_statement();
                 if res.is_ok() {
-                    return Ok(Box::new(res.unwrap()));
+                    return Ok(Statement::ExpressionStatement(res.ok().unwrap()));
                 } else {
                     return Err(res.err().unwrap());
                 }
@@ -340,7 +338,7 @@ impl Parser {
 
     fn parse_prefix_expression(
         &mut self,
-    ) -> Result<Box<dyn Expression>, Vec<Box<dyn ParserError>>> {
+    ) -> Result<Expression, Vec<Box<dyn ParserError>>> {
         let token = self.cur_token.clone();
         self.next();
         let exp = self.parse_expression(Precedence::Prefix);
@@ -348,13 +346,16 @@ impl Parser {
             let errs = exp.err().unwrap();
             return Err(errs);
         }
-        let right = exp.unwrap();
-        Ok(Box::new(PrefixExpression { token, right }))
+        let right = Box::new(exp.unwrap());
+        Ok(Expression::PrefixExpression(PrefixExpression {
+            token,
+            right,
+        }))
     }
 
     fn parse_group_expression(
         &mut self,
-    ) -> Result<Box<dyn Expression>, Vec<Box<dyn ParserError>>> {
+    ) -> Result<Expression, Vec<Box<dyn ParserError>>> {
         self.next(); // consume LPAREN
         let exp = self.parse_expression(Precedence::Lowest);
         if exp.is_err() {
@@ -460,7 +461,7 @@ impl Parser {
 
         Ok(IfExpression {
             token: if_token,
-            condition,
+            condition: Box::new(condition),
             consequence,
             alternative,
         })
@@ -581,7 +582,7 @@ impl Parser {
 
     fn parse_call_expression(
         &mut self,
-        function: Box<dyn Expression>,
+        function: Expression,
     ) -> Result<CallExpression, Vec<Box<dyn ParserError>>> {
         let token = self.cur_token.clone();
         let arguments = self.parse_call_args();
@@ -597,14 +598,14 @@ impl Parser {
         let arguments = arguments.unwrap();
         Ok(CallExpression {
             token,
-            function,
+            function: Box::new(function),
             arguments,
         })
     }
 
     fn parse_call_args(
         &mut self,
-    ) -> Result<Vec<Box<dyn Expression>>, Vec<Box<dyn ParserError>>> {
+    ) -> Result<Vec<Expression>, Vec<Box<dyn ParserError>>> {
         let mut args = Vec::new();
         if self.peek_next_is(&Kind::RPAREN) {
             self.next(); // consume RPAREN
@@ -658,9 +659,9 @@ impl Parser {
     fn parse_prefix(
         &mut self,
         kind: &Kind,
-    ) -> Result<Box<dyn Expression>, Vec<Box<dyn ParserError>>> {
+    ) -> Result<Expression, Vec<Box<dyn ParserError>>> {
         match kind {
-            Kind::Ident => Ok(Box::new(self.parse_identifier())),
+            Kind::Ident => Ok(Expression::Identifier(self.parse_identifier())),
             Kind::Int => {
                 let res = self.parse_integer_literal();
                 if res.is_err() {
@@ -668,7 +669,7 @@ impl Parser {
                     errs.push(Box::new(res.err().unwrap()));
                     return Err(errs);
                 }
-                Ok(Box::new(res.ok().unwrap()))
+                Ok(Expression::IntegerLiteral(res.ok().unwrap()))
             }
             Kind::LPAREN => {
                 let res = self.parse_group_expression();
@@ -697,7 +698,9 @@ impl Parser {
                 }
                 Ok(res.ok().unwrap())
             }
-            Kind::True | Kind::False => Ok(Box::new(self.parse_bool_literal())),
+            Kind::True | Kind::False => {
+                Ok(Expression::BooleanLiteral(self.parse_bool_literal()))
+            }
             Kind::If => {
                 let res = self.parse_if_expression();
                 if res.is_err() {
@@ -709,7 +712,7 @@ impl Parser {
                     }));
                     return Err(errs);
                 }
-                Ok(Box::new(res.ok().unwrap()))
+                Ok(Expression::IfExpression(res.ok().unwrap()))
             }
             Kind::Function => {
                 let res = self.parse_function_literal();
@@ -722,7 +725,7 @@ impl Parser {
                     }));
                     return Err(errs);
                 }
-                Ok(Box::new(res.ok().unwrap()))
+                Ok(Expression::FunctionLiteral(res.ok().unwrap()))
             }
             not_matched => {
                 let mut errs: Vec<Box<dyn ParserError>> = Vec::new();
@@ -741,8 +744,8 @@ impl Parser {
 
     fn parse_infix(
         &mut self,
-        left: Box<dyn Expression>,
-    ) -> Result<Box<dyn Expression>, Vec<Box<dyn ParserError>>> {
+        left: Expression,
+    ) -> Result<Expression, Vec<Box<dyn ParserError>>> {
         let cur_token = self.cur_token.clone();
         if cur_token.kind != Kind::LPAREN {
             let operator = self.cur_token.clone();
@@ -762,11 +765,11 @@ impl Parser {
                 return Err(errs);
             }
             let right = right.ok().unwrap();
-            return Ok(Box::new(InfixExpression {
+            return Ok(Expression::InfixExpression(InfixExpression {
                 token: cur_token,
-                left,
+                left: Box::new(left),
                 operator,
-                right,
+                right: Box::new(right),
             }));
         }
         if cur_token.kind == Kind::LPAREN {
@@ -782,7 +785,7 @@ impl Parser {
                 }));
                 return Err(errs);
             }
-            return Ok(Box::new(call_expression.unwrap()));
+            return Ok(Expression::CallExpression(call_expression.unwrap()));
         }
         unreachable!()
     }
@@ -790,7 +793,7 @@ impl Parser {
     fn parse_expression(
         &mut self,
         precedence: Precedence,
-    ) -> Result<Box<dyn Expression>, Vec<Box<dyn ParserError>>> {
+    ) -> Result<Expression, Vec<Box<dyn ParserError>>> {
         let exp = self.parse_prefix(&self.cur_token.kind.clone());
 
         if exp.is_err() {
