@@ -1,4 +1,4 @@
-use dlang::{lexer::Lexer, parser::Parser};
+use dlang::{ast::Nodetrait, lexer::Lexer, parser::Parser};
 
 #[test]
 fn test_let_statement() {

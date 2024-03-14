@@ -1,7 +1,6 @@
 use std::io::{self, BufRead, Write};
 
 use crate::{ast::Node, ast::Nodetrait, lexer::Lexer, parser::Parser};
-
 const PROMPT: &str = "-> ";
 
 pub fn start() {
