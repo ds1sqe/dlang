@@ -1,8 +1,12 @@
 use std::io::{self, BufRead, Write};
 
 use crate::{
-    ast::Node, ast::Nodetrait, eval::evaluate, lexer::Lexer,
-    object::environment::Environment, parser::Parser,
+    ast::Node,
+    ast::Nodetrait,
+    eval::evaluate,
+    lexer::Lexer,
+    object::{environment::Environment, ObjectTrait},
+    parser::Parser,
 };
 const PROMPT: &str = "-> ";
 
@@ -18,17 +22,21 @@ pub fn start() {
                 let lexer = Lexer::new(buf.clone());
                 let mut parser = Parser::new(lexer);
                 let program = parser.parse();
+                println!("Debug Output (Parser) >> {:?}", program);
 
                 if program.is_ok() {
                     let program = program.unwrap();
                     for stm in program.statements {
                         let node = stm.to_node();
                         let result = evaluate(node, &mut env);
-                        println!("Debug output>> {:?}", result);
+                        println!("Debug Output (Eval) >> {:?}", result);
 
                         if result.is_ok() {
                             let eval = result.unwrap();
-                            println!(">>{:?}", eval);
+                            if eval.is_some() {
+                                let val = eval.unwrap();
+                                println!("{}", val.to_str());
+                            }
                         }
                     }
                 } else {

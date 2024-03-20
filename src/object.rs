@@ -24,6 +24,7 @@ pub enum ObjectType {
 
 pub trait ObjectTrait {
     fn get_type(&self) -> ObjectType;
+    fn to_str(&self) -> String;
 }
 
 impl ObjectTrait for Object {
@@ -34,6 +35,16 @@ impl ObjectTrait for Object {
             Object::Bool(x) => x.get_type(),
             Object::Function(x) => x.get_type(),
         }
+    }
+
+    fn to_str(&self) -> String {
+        let inner = match self {
+            Object::Return(x) => x.to_str(),
+            Object::Int(x) => x.to_str(),
+            Object::Bool(x) => x.to_str(),
+            Object::Function(x) => x.to_str(),
+        };
+        format!("Object(Enum): {}", inner)
     }
 }
 
@@ -46,6 +57,10 @@ impl ObjectTrait for Return {
     fn get_type(&self) -> ObjectType {
         ObjectType::Return
     }
+
+    fn to_str(&self) -> String {
+        format!("{:?}", self)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -56,6 +71,9 @@ impl ObjectTrait for Int {
     fn get_type(&self) -> ObjectType {
         ObjectType::Int
     }
+    fn to_str(&self) -> String {
+        format!("Int:{}", self.value)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -65,6 +83,9 @@ pub struct Bool {
 impl ObjectTrait for Bool {
     fn get_type(&self) -> ObjectType {
         ObjectType::Bool
+    }
+    fn to_str(&self) -> String {
+        format!("Bool:{}", self.value)
     }
 }
 
@@ -77,6 +98,12 @@ pub struct Function {
 impl ObjectTrait for Function {
     fn get_type(&self) -> ObjectType {
         ObjectType::Function
+    }
+    fn to_str(&self) -> String {
+        format!(
+            "Function: args <{:?}> block<{:?}> env<{:?}>",
+            self.args, self.block, self.env
+        )
     }
 }
 

@@ -1,6 +1,7 @@
 use crate::{
     ast::{
-        Expression, InfixExpression, Node, Nodetrait, PrefixExpression, Statement,
+        CallExpression, Expression, IfExpression, InfixExpression, Node, Nodetrait,
+        PrefixExpression, Statement,
     },
     object::{
         environment::Environment, is_same_type, Bool, Function, Int, Object,
@@ -149,8 +150,8 @@ fn eval_exp(
 
         Expression::InfixExpression(exp) => eval_infix_exp(exp, env),
         Expression::PrefixExpression(exp) => eval_prefix_exp(exp, env),
-        Expression::IfExpression(_) => todo!(),
-        Expression::CallExpression(_) => todo!(),
+        Expression::IfExpression(exp) => eval_if_exp(exp, env),
+        Expression::CallExpression(_) => Err(()),
     }
 }
 
@@ -345,5 +346,50 @@ fn eval_prefix_bool_exp(operator: Kind, right: Bool) -> Result<Object, ()> {
             value: !right.value,
         })),
         __ => Err(()),
+    }
+}
+
+fn eval_if_exp(
+    exp: IfExpression,
+    env: &mut Environment<String>,
+) -> Result<Option<Object>, ()> {
+    let condition_val = eval_exp(*exp.condition, env);
+    if condition_val.is_err() {
+        return condition_val;
+    };
+
+    let obj = condition_val.unwrap();
+    if obj.is_none() {
+        // name err
+        return Err(());
+    }
+
+    let object = obj.unwrap();
+    let Object::Bool(flag) = object else { return Err(())};
+
+    if flag.value {
+        return eval_stm(Statement::BlockStatement(exp.consequence), env);
+    } else if exp.alternative.is_some() {
+        return eval_stm(Statement::BlockStatement(exp.alternative.unwrap()), env);
+    }
+    return Ok(None);
+}
+
+fn eval_call_exp(
+    exp: CallExpression,
+    env: &mut Environment<String>,
+) -> Result<Option<Object>, ()> {
+    let func = *exp.function;
+
+    match func {
+        Expression::FunctionLiteral(lit) => {
+
+            // excute unnamed function
+        }
+        Expression::Identifier(ident) => {}
+        __ => {
+            // add err
+            return Err(());
+        }
     }
 }

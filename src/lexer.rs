@@ -65,6 +65,7 @@ impl Lexer {
         let start = self.pos;
         while !self.peek_char().is_whitespace()
             && self.peek_char().is_alphanumeric()
+            || self.peek_char() == '_'
         {
             self.read_char();
         }
