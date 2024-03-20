@@ -51,6 +51,7 @@ fn is_infix(kind: &Kind) -> bool {
         | Kind::Minus
         | Kind::Divide
         | Kind::Product
+        | Kind::Mod
         | Kind::EQ
         | Kind::NOT_EQ
         | Kind::LT

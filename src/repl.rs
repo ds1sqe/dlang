@@ -1,11 +1,15 @@
 use std::io::{self, BufRead, Write};
 
-use crate::{ast::Node, ast::Nodetrait, lexer::Lexer, parser::Parser};
+use crate::{
+    ast::Node, ast::Nodetrait, eval::evaluate, lexer::Lexer,
+    object::environment::Environment, parser::Parser,
+};
 const PROMPT: &str = "-> ";
 
 pub fn start() {
     let mut buf = String::new();
     let mut stdin = io::stdin().lock(); // We get `Stdin` here.
+    let mut env: Environment<String> = Environment::new();
     loop {
         io::stdout().lock().write_all(PROMPT.as_bytes()).unwrap();
         io::stdout().flush().unwrap();
@@ -16,10 +20,16 @@ pub fn start() {
                 let program = parser.parse();
 
                 if program.is_ok() {
-                    for stm in program.ok().unwrap().statements {
-                        println!("Debug output>> {:?}", stm);
+                    let program = program.unwrap();
+                    for stm in program.statements {
+                        let node = stm.to_node();
+                        let result = evaluate(node, &mut env);
+                        println!("Debug output>> {:?}", result);
 
-                        println!("To String >> {}", stm.to_str());
+                        if result.is_ok() {
+                            let eval = result.unwrap();
+                            println!(">>{:?}", eval);
+                        }
                     }
                 } else {
                     println!("!!!> ERROR OCCURED <!!!");

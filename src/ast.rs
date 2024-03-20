@@ -2,13 +2,13 @@ use std::fmt::Debug;
 
 use crate::token;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Node {
     Statement(Statement),
     Expression(Expression),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     LetStatement(LetStatement),
     ExpressionStatement(ExpressionStatement),
@@ -16,7 +16,7 @@ pub enum Statement {
     BlockStatement(BlockStatement),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
@@ -31,6 +31,7 @@ pub enum Expression {
 pub trait Nodetrait {
     fn literal(&self) -> String;
     fn to_str(&self) -> String;
+    fn to_node(self) -> Node;
 }
 
 impl Nodetrait for Statement {
@@ -50,6 +51,10 @@ impl Nodetrait for Statement {
             Statement::ReturnStatement(stm) => stm.to_str(),
             Statement::BlockStatement(stm) => stm.to_str(),
         }
+    }
+
+    fn to_node(self) -> Node {
+        Node::Statement(self)
     }
 }
 
@@ -79,6 +84,10 @@ impl Nodetrait for Expression {
             Expression::CallExpression(cexp) => cexp.to_str(),
         }
     }
+
+    fn to_node(self) -> Node {
+        Node::Expression(self)
+    }
 }
 
 #[derive(Debug)]
@@ -96,7 +105,7 @@ impl Program {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Identifier {
     pub token: token::Token, // token::IDENT
     pub value: String,
@@ -109,9 +118,13 @@ impl Nodetrait for Identifier {
     fn to_str(&self) -> String {
         self.value.clone()
     }
+
+    fn to_node(self) -> Node {
+        Expression::Identifier(self).to_node()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IntegerLiteral {
     pub token: token::Token, // token::Int
     pub value: i64,
@@ -124,9 +137,12 @@ impl Nodetrait for IntegerLiteral {
     fn to_str(&self) -> String {
         self.value.clone().to_string()
     }
+    fn to_node(self) -> Node {
+        Expression::IntegerLiteral(self).to_node()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BooleanLiteral {
     pub token: token::Token, // token::False or True
     pub value: bool,
@@ -139,9 +155,12 @@ impl Nodetrait for BooleanLiteral {
     fn to_str(&self) -> String {
         self.value.clone().to_string()
     }
+    fn to_node(self) -> Node {
+        Expression::BooleanLiteral(self).to_node()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionLiteral {
     pub token: token::Token, // token::Function
     pub ident: Option<Identifier>,
@@ -171,9 +190,12 @@ impl Nodetrait for FunctionLiteral {
         buf.push_str("}");
         buf
     }
+    fn to_node(self) -> Node {
+        Expression::FunctionLiteral(self).to_node()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LetStatement {
     pub token: token::Token,
     pub identifier: Identifier,
@@ -197,9 +219,12 @@ impl Nodetrait for LetStatement {
         buf.push_str(";");
         buf
     }
+    fn to_node(self) -> Node {
+        Statement::LetStatement(self).to_node()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReturnStatement {
     pub token: token::Token,
     pub value: Option<Expression>,
@@ -219,9 +244,12 @@ impl Nodetrait for ReturnStatement {
         buf.push_str(";");
         buf
     }
+    fn to_node(self) -> Node {
+        Statement::ReturnStatement(self).to_node()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BlockStatement {
     pub token: token::Token,
     pub statements: Vec<Statement>,
@@ -238,9 +266,12 @@ impl Nodetrait for BlockStatement {
         }
         buf
     }
+    fn to_node(self) -> Node {
+        Statement::BlockStatement(self).to_node()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExpressionStatement {
     pub token: token::Token,
     pub expression: Option<Expression>,
@@ -257,9 +288,12 @@ impl Nodetrait for ExpressionStatement {
         }
         buf
     }
+    fn to_node(self) -> Node {
+        Statement::ExpressionStatement(self).to_node()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PrefixExpression {
     pub token: token::Token,
     pub right: Box<Expression>,
@@ -276,9 +310,12 @@ impl Nodetrait for PrefixExpression {
         buf.push_str(")");
         buf
     }
+    fn to_node(self) -> Node {
+        Expression::PrefixExpression(self).to_node()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InfixExpression {
     pub token: token::Token,
     pub left: Box<Expression>,
@@ -300,9 +337,12 @@ impl Nodetrait for InfixExpression {
         buf.push_str(")");
         buf
     }
+    fn to_node(self) -> Node {
+        Expression::InfixExpression(self).to_node()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IfExpression {
     pub token: token::Token, // Token::If
     pub condition: Box<Expression>,
@@ -328,9 +368,12 @@ impl Nodetrait for IfExpression {
         }
         buf
     }
+    fn to_node(self) -> Node {
+        Expression::IfExpression(self).to_node()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CallExpression {
     pub token: token::Token, // Token::IDENT
     pub function: Box<Expression>,
@@ -353,5 +396,8 @@ impl Nodetrait for CallExpression {
         buf.push_str(&args.join(", "));
         buf.push_str(")");
         buf
+    }
+    fn to_node(self) -> Node {
+        Expression::CallExpression(self).to_node()
     }
 }
