@@ -20,6 +20,7 @@ pub enum ObjectType {
     Return,
     Int,
     Bool,
+    String,
     Function,
 }
 
@@ -98,7 +99,7 @@ pub struct StringObject {
 }
 impl ObjectTrait for StringObject {
     fn get_type(&self) -> ObjectType {
-        ObjectType::Bool
+        ObjectType::String
     }
     fn to_str(&self) -> String {
         format!("String:{}", self.value)

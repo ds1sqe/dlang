@@ -201,6 +201,16 @@ fn eval_infix_exp(
             let result = Some(result.unwrap());
             Ok(result)
         }
+        ObjectType::String => {
+            let Object::String(left) = left else {unreachable!()};
+            let Object::String(right) = right else {unreachable!()};
+            let result = eval_infix_string_exp(left, exp.operator.kind, right);
+            if result.is_err() {
+                return Err(result.err().unwrap());
+            }
+            let result = Some(result.unwrap());
+            Ok(result)
+        }
         ObjectType::Function | ObjectType::Return => {
             Err(EvalError::InvalidInfixOperationTarget(left.get_type()))
         }
@@ -274,6 +284,29 @@ fn eval_infix_bool_exp(left: Bool, operator: Kind, right: Bool) -> Result<Object
         }
     }
 }
+fn eval_infix_string_exp(
+    left: StringObject,
+    operator: Kind,
+    right: StringObject,
+) -> Result<Object, EvalError> {
+    match operator {
+        Kind::EQ => Ok(Object::Bool(Bool {
+            value: left.value == right.value,
+        })),
+        Kind::NOT_EQ => Ok(Object::Bool(Bool {
+            value: left.value != right.value,
+        })),
+        Kind::Plus => {
+            let value = left.value + &right.value;
+            Ok(Object::String(StringObject { value }))
+        }
+
+        oper => {
+            // add err
+            Err(EvalError::InvalidStringInfixOperation(oper))
+        }
+    }
+}
 
 fn eval_prefix_exp(
     exp: PrefixExpression,
@@ -313,7 +346,7 @@ fn eval_prefix_exp(
             }
             Ok(Some(result.unwrap()))
         }
-        ObjectType::Function | ObjectType::Return => {
+        ObjectType::Function | ObjectType::Return | ObjectType::String => {
             Err(EvalError::InvalidPrefixOperationTarget(obj.get_type()))
         }
     }

@@ -28,6 +28,8 @@ pub enum EvalError {
     InvalidPrefixOperationTarget(ObjectType),
     InvalidInfixOperationTarget(ObjectType),
 
+    InvalidStringInfixOperation(Kind),
+
     InvalidIntegerInfixOperation(Kind),
     InvalidIntegerPrefixOperation(Kind),
 
