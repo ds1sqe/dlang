@@ -22,6 +22,10 @@ fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Obje
         Statement::LetStatement(stm) => {
             let ident = stm.identifier;
 
+            if stm.value.is_none() {
+                return Err(());
+            }
+
             let result = eval_exp(stm.value.unwrap(), env);
             if result.is_ok() {
                 let value = result.unwrap();

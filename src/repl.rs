@@ -1,7 +1,6 @@
 use std::io::{self, BufRead, Write};
 
 use crate::{
-    ast::Node,
     ast::Nodetrait,
     eval::evaluate,
     lexer::Lexer,

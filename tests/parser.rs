@@ -106,13 +106,13 @@ fn test_if_expression() {
         "if flag {return true;}".to_string(),
     ));
 
-    for (input, expect) in tests {
+    for (idx, (input, expect)) in tests.iter().enumerate() {
         let lexer = Lexer::new(input.clone());
 
         let mut parser = Parser::new(lexer);
         let res = parser.parse().ok().unwrap();
         let result = res.statements[0].to_str();
-        assert!(result == expect);
+        assert!(&result == expect);
     }
 }
 
