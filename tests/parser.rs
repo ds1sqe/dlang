@@ -159,7 +159,7 @@ fn test_function_literal() {
         "let hey = fn () {
          let hello = true;
          return hello;
-         }"
+         };"
         .to_string(),
         "let hey = fn() {let hello = true;return hello;};".to_string(),
     ));

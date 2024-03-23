@@ -33,6 +33,14 @@ impl<T> Tests<T> {
 
 fn test_eval(input: String) -> Result<Option<Object>, EvalError> {
     let lex = lexer::Lexer::new(input);
+
+    let mut lex_cl = lex.clone();
+    loop {
+        let tok = lex_cl.next();
+        if tok.kind == Kind::EOF {
+            break;
+        }
+    }
     let mut parser = parser::Parser::new(lex);
     let prog = parser.parse().unwrap();
 
@@ -367,39 +375,36 @@ fn test_eval_function() {
     let mut tests: Tests<Object> = Tests::new();
 
     tests.add((
-        "let func = fn (x) { x }; func(5);",
+        "let func = fn (x) { x }; func(5)",
         Object::Int(Int { value: 5 }),
     ));
 
     tests.add((
-        "let func = fn (x) { return x; }; func(5);",
+        "let func = fn (x) { return x; }; func(5)",
+        Object::Int(Int { value: 5 }),
+    ));
+
+    tests.add(("fn func(x) { x } \n func(5)", Object::Int(Int { value: 5 })));
+
+    tests.add((
+        "fn func(x) { return x; } \n func(5)",
         Object::Int(Int { value: 5 }),
     ));
 
     tests.add((
-        "fn func(x) { x } \n func(5);",
-        Object::Int(Int { value: 5 }),
-    ));
-
-    tests.add((
-        "fn func(x) { return x; } \n func(5);",
-        Object::Int(Int { value: 5 }),
-    ));
-
-    tests.add((
-        "fn add(x,y) { return x+y; } \n add(5,10);",
+        "fn add(x,y) { return x+y; } \n add(5,10)",
         Object::Int(Int { value: 15 }),
     ));
 
     tests.add((
-        "fn add(x,y) { return x+y; } \n add(add(5,10),add(15,20));",
+        "fn add(x,y) { return x+y; } \n add(add(5,10),add(15,20))",
         Object::Int(Int { value: 50 }),
     ));
 
-    tests.add(("fn (x,y) { x*y }(5,10);", Object::Int(Int { value: 50 })));
+    tests.add(("fn (x,y) { x*y }(5,10)", Object::Int(Int { value: 50 })));
 
     tests.add((
-        "fn product(x,y) { x*y }(5,10);",
+        "fn product(x,y) { x*y }(5,10)",
         Object::Int(Int { value: 50 }),
     ));
 
@@ -408,7 +413,7 @@ fn test_eval_function() {
         let createAdder = fn (x) {
             let adder = fn (y) { return y + x;};
             return adder;
-        }
+        };
 
         let add_ten = createAdder(10);
 

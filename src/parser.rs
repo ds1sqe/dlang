@@ -147,7 +147,7 @@ impl Parser {
                     // deeper first.
                     err_vec.push(Box::new(res.err().unwrap()));
                     err_vec.push(Box::new(errors::ParseError {
-                        detail: "faild to parse let string".to_string(),
+                        detail: "faild to parse let statement".to_string(),
                         position: self.lexer.get_pos(),
                     }));
 
@@ -199,7 +199,12 @@ impl Parser {
             stm.value = self.parse_expression(Precedence::Lowest).ok()
         }
 
-        self.expect_next_is(&Kind::Semicolon);
+        if !self.expect_next_is(&Kind::Semicolon) {
+            return Err(errors::ParseError {
+                detail: "next_token is not a Kind::Semicolon".to_string(),
+                position: self.lexer.get_pos(),
+            });
+        }
 
         Ok(stm)
     }
@@ -579,11 +584,6 @@ impl Parser {
             return Err(errs);
         }
 
-        // consume Semicolon
-        if self.expect_next_is(&Kind::Semicolon) {
-            self.next();
-        }
-
         let arguments = arguments.unwrap();
         Ok(CallExpression {
             token,
@@ -637,6 +637,7 @@ impl Parser {
             }));
             return Err(errs);
         }
+
         Ok(args)
     }
 
@@ -726,6 +727,7 @@ impl Parser {
 
     fn parse_infix(&mut self, left: Expression) -> Result<Expression, Vec<Box<dyn ParserError>>> {
         let cur_token = self.cur_token.clone();
+
         if cur_token.kind != Kind::LPAREN {
             let operator = self.cur_token.clone();
             let cur_precedence = self.cur_precedence();
