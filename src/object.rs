@@ -6,7 +6,7 @@ use crate::ast::{BlockStatement, Identifier};
 
 use self::environment::Environment;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Object {
     Return(Return),
     Int(Int),
@@ -52,7 +52,7 @@ impl ObjectTrait for Object {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Return {
     pub value: Option<Box<Object>>,
 }
@@ -67,7 +67,7 @@ impl ObjectTrait for Return {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct Int {
     pub value: i64,
 }
@@ -80,7 +80,7 @@ impl ObjectTrait for Int {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct Bool {
     pub value: bool,
 }
@@ -93,7 +93,7 @@ impl ObjectTrait for Bool {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StringObject {
     pub value: String,
 }
@@ -106,7 +106,7 @@ impl ObjectTrait for StringObject {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Function {
     pub args: Vec<Identifier>,
     pub block: BlockStatement,

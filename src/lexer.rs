@@ -4,6 +4,7 @@ use crate::token::Token;
 use crate::token::{self, Kind};
 pub mod errors;
 
+#[derive(Clone)]
 pub struct Lexer {
     input: String,
     pos: usize,
@@ -181,7 +182,6 @@ impl Lexer {
             }
             '"' => {
                 let result = self.read_string();
-                println!("{:?}", result);
                 if result.is_ok() {
                     token.kind = Kind::String;
                     token.literal = result.ok().unwrap();

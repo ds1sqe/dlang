@@ -2,7 +2,7 @@ use std::{collections::HashMap, hash::Hash};
 
 use super::Object;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Environment<T: Hash + Eq + PartialEq> {
     binding: HashMap<T, Object>,
     outer: Option<Box<Self>>,

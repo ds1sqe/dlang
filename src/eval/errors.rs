@@ -4,8 +4,10 @@ use crate::{
     token::Kind,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EvalError {
+    BlankResult,
+
     LetStatementValueIsNone,
     EvaluationOfExpressionIsNone(Expression),
     LeftExpressionIsNone,
@@ -17,7 +19,7 @@ pub enum EvalError {
     ConditionIsNone,
     FunctionIsNone,
 
-    IdentifierNotFound,
+    IdentifierNotFound(String),
 
     NotSameType,
 
@@ -25,8 +27,8 @@ pub enum EvalError {
 
     DivideWithZero,
 
-    InvalidPrefixOperationTarget(ObjectType),
-    InvalidInfixOperationTarget(ObjectType),
+    InvalidPrefixOperationTarget(ObjectType, Kind),
+    InvalidInfixOperationTarget(ObjectType, Kind),
 
     InvalidStringInfixOperation(Kind),
 
@@ -37,7 +39,7 @@ pub enum EvalError {
     InvalidBoolPrefixOperation(Kind),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ArgumentsLength {
     pub function_args: usize,
     pub called_with: usize,

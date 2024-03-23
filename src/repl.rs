@@ -6,6 +6,7 @@ use crate::{
     lexer::Lexer,
     object::{environment::Environment, ObjectTrait},
     parser::Parser,
+    token::Kind,
 };
 const PROMPT: &str = "-> ";
 
@@ -19,23 +20,29 @@ pub fn start() {
         match stdin.read_line(&mut buf) {
             Ok(n) => {
                 let lexer = Lexer::new(buf.clone());
+
+                let mut cloned_lexer = lexer.clone();
+                loop {
+                    let cur_token = cloned_lexer.next();
+                    println!("Debug Output (Lexer) >> {:?}", cur_token);
+                    if cur_token.kind == Kind::EOF {
+                        break;
+                    }
+                }
                 let mut parser = Parser::new(lexer);
                 let program = parser.parse();
                 println!("Debug Output (Parser) >> {:?}", program);
 
                 if program.is_ok() {
                     let program = program.unwrap();
-                    for stm in program.statements {
-                        let node = stm.to_node();
-                        let result = evaluate(node, &mut env);
-                        println!("Debug Output (Eval) >> {:?}", result);
+                    let result = evaluate(program.to_node(), &mut env);
+                    println!("Debug Output (Eval) >> {:?}", result);
 
-                        if result.is_ok() {
-                            let eval = result.unwrap();
-                            if eval.is_some() {
-                                let val = eval.unwrap();
-                                println!("{}", val.to_str());
-                            }
+                    if result.is_ok() {
+                        let eval = result.unwrap();
+                        if eval.is_some() {
+                            let val = eval.unwrap();
+                            println!("{}", val.to_str());
                         }
                     }
                 } else {

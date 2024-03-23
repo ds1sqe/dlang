@@ -99,7 +99,7 @@ impl Kind {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub kind: Kind,
     pub literal: String,

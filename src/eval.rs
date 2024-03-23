@@ -3,7 +3,7 @@ pub mod errors;
 use crate::{
     ast::{
         CallExpression, Expression, IfExpression, InfixExpression, Node, Nodetrait,
-        PrefixExpression, Statement,
+        PrefixExpression, Program, Statement,
     },
     object::{
         environment::Environment, is_same_type, Bool, Function, Int, Object, ObjectTrait,
@@ -16,9 +16,40 @@ use self::errors::{ArgumentsLength, EvalError};
 
 pub fn evaluate(node: Node, env: &mut Environment<String>) -> Result<Option<Object>, EvalError> {
     match node {
+        Node::Program(pro) => eval_program(pro, env),
         Node::Statement(stm) => eval_stm(stm, env),
         Node::Expression(exp) => eval_exp(exp, env),
     }
+}
+
+fn eval_program(pro: Program, env: &mut Environment<String>) -> Result<Option<Object>, EvalError> {
+    let mut result: Result<Option<Object>, EvalError> = Err(EvalError::BlankResult);
+
+    for stm in pro.statements {
+        result = eval_stm(stm, env);
+
+        match result.clone() {
+            Ok(opt) => match opt {
+                Some(obj) => match obj {
+                    Object::Return(rtv) => match rtv.value {
+                        Some(val) => {
+                            return Ok(Some(*val));
+                        }
+                        None => {
+                            return Ok(None);
+                        }
+                    },
+                    __ => {}
+                },
+                None => {
+                    result = Ok(opt);
+                }
+            },
+            Err(err) => return Err(err),
+        }
+    }
+
+    result
 }
 
 fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Object>, EvalError> {
@@ -120,7 +151,7 @@ fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Obj
                 Ok(obj)
             } else {
                 // identifier not found
-                Err(EvalError::IdentifierNotFound)
+                Err(EvalError::IdentifierNotFound(key.clone()))
             }
         }
         Expression::IntegerLiteral(lit) => Ok(Some(Object::Int(Int { value: lit.value }))),
@@ -211,9 +242,10 @@ fn eval_infix_exp(
             let result = Some(result.unwrap());
             Ok(result)
         }
-        ObjectType::Function | ObjectType::Return => {
-            Err(EvalError::InvalidInfixOperationTarget(left.get_type()))
-        }
+        ObjectType::Function | ObjectType::Return => Err(EvalError::InvalidInfixOperationTarget(
+            left.get_type(),
+            exp.operator.kind,
+        )),
     }
 }
 
@@ -278,6 +310,13 @@ fn eval_infix_bool_exp(left: Bool, operator: Kind, right: Bool) -> Result<Object
         Kind::Or | Kind::Bit_Or => Ok(Object::Bool(Bool {
             value: left.value || right.value,
         })),
+        Kind::EQ => Ok(Object::Bool(Bool {
+            value: left.value == right.value,
+        })),
+        Kind::NOT_EQ => Ok(Object::Bool(Bool {
+            value: left.value != right.value,
+        })),
+
         oper => {
             // add err
             Err(EvalError::InvalidBoolInfixOperation(oper))
@@ -346,9 +385,9 @@ fn eval_prefix_exp(
             }
             Ok(Some(result.unwrap()))
         }
-        ObjectType::Function | ObjectType::Return | ObjectType::String => {
-            Err(EvalError::InvalidPrefixOperationTarget(obj.get_type()))
-        }
+        ObjectType::Function | ObjectType::Return | ObjectType::String => Err(
+            EvalError::InvalidPrefixOperationTarget(obj.get_type(), operator),
+        ),
     }
 }
 

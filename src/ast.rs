@@ -4,11 +4,12 @@ use crate::token;
 
 #[derive(Debug, Clone)]
 pub enum Node {
+    Program(Program),
     Statement(Statement),
     Expression(Expression),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     LetStatement(LetStatement),
     ExpressionStatement(ExpressionStatement),
@@ -16,7 +17,7 @@ pub enum Statement {
     BlockStatement(BlockStatement),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
@@ -93,7 +94,7 @@ impl Nodetrait for Expression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Program {
     pub statements: Vec<Statement>,
 }
@@ -108,7 +109,37 @@ impl Program {
     }
 }
 
-#[derive(Debug, Clone)]
+impl Nodetrait for Program {
+    fn literal(&self) -> String {
+        let mut buf = String::new();
+
+        buf.push_str("Program: ");
+
+        for stm in self.statements.iter() {
+            buf.push_str(&stm.literal())
+        }
+
+        buf
+    }
+
+    fn to_str(&self) -> String {
+        let mut buf = String::new();
+
+        buf.push_str("Program: ");
+
+        for stm in self.statements.iter() {
+            buf.push_str(&stm.to_str())
+        }
+
+        buf
+    }
+
+    fn to_node(self) -> Node {
+        Node::Program(self)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Identifier {
     pub token: token::Token, // token::IDENT
     pub value: String,
@@ -127,7 +158,7 @@ impl Nodetrait for Identifier {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IntegerLiteral {
     pub token: token::Token, // token::Int
     pub value: i64,
@@ -145,7 +176,7 @@ impl Nodetrait for IntegerLiteral {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BooleanLiteral {
     pub token: token::Token, // token::False or True
     pub value: bool,
@@ -163,7 +194,7 @@ impl Nodetrait for BooleanLiteral {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StringLiteral {
     pub token: token::Token, // token::False or True
     pub value: String,
@@ -181,7 +212,7 @@ impl Nodetrait for StringLiteral {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FunctionLiteral {
     pub token: token::Token, // token::Function
     pub ident: Option<Identifier>,
@@ -216,7 +247,7 @@ impl Nodetrait for FunctionLiteral {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LetStatement {
     pub token: token::Token,
     pub identifier: Identifier,
@@ -245,7 +276,7 @@ impl Nodetrait for LetStatement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ReturnStatement {
     pub token: token::Token,
     pub value: Option<Expression>,
@@ -260,7 +291,7 @@ impl Nodetrait for ReturnStatement {
         buf.push_str(&self.literal());
         if self.value.is_some() {
             buf.push_str(" ");
-            buf.push_str(&self.value.as_ref().unwrap().literal())
+            buf.push_str(&self.value.as_ref().unwrap().to_str())
         }
         buf.push_str(";");
         buf
@@ -270,7 +301,7 @@ impl Nodetrait for ReturnStatement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlockStatement {
     pub token: token::Token,
     pub statements: Vec<Statement>,
@@ -292,7 +323,7 @@ impl Nodetrait for BlockStatement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExpressionStatement {
     pub token: token::Token,
     pub expression: Option<Expression>,
@@ -314,7 +345,7 @@ impl Nodetrait for ExpressionStatement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PrefixExpression {
     pub token: token::Token,
     pub right: Box<Expression>,
@@ -336,7 +367,7 @@ impl Nodetrait for PrefixExpression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct InfixExpression {
     pub token: token::Token,
     pub left: Box<Expression>,
@@ -363,7 +394,7 @@ impl Nodetrait for InfixExpression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IfExpression {
     pub token: token::Token, // Token::If
     pub condition: Box<Expression>,
@@ -394,7 +425,7 @@ impl Nodetrait for IfExpression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CallExpression {
     pub token: token::Token, // Token::IDENT
     pub function: Box<Expression>,
