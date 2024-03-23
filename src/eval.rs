@@ -4,26 +4,20 @@ use crate::{
         PrefixExpression, Statement,
     },
     object::{
-        environment::Environment, is_same_type, Bool, Function, Int, Object,
-        ObjectTrait, ObjectType, Return,
+        environment::Environment, is_same_type, Bool, Function, Int, Object, ObjectTrait,
+        ObjectType, Return,
     },
     token::Kind,
 };
 
-pub fn evaluate(
-    node: Node,
-    env: &mut Environment<String>,
-) -> Result<Option<Object>, ()> {
+pub fn evaluate(node: Node, env: &mut Environment<String>) -> Result<Option<Object>, ()> {
     match node {
         Node::Statement(stm) => eval_stm(stm, env),
         Node::Expression(exp) => eval_exp(exp, env),
     }
 }
 
-fn eval_stm(
-    stm: Statement,
-    env: &mut Environment<String>,
-) -> Result<Option<Object>, ()> {
+fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Object>, ()> {
     match stm {
         Statement::LetStatement(stm) => {
             let ident = stm.identifier;
@@ -110,10 +104,7 @@ fn eval_stm(
     }
 }
 
-fn eval_exp(
-    exp: Expression,
-    env: &mut Environment<String>,
-) -> Result<Option<Object>, ()> {
+fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Object>, ()> {
     match exp {
         Expression::Identifier(id_exp) => {
             let key = id_exp.value;
@@ -125,12 +116,8 @@ fn eval_exp(
                 Err(())
             }
         }
-        Expression::IntegerLiteral(lit) => {
-            Ok(Some(Object::Int(Int { value: lit.value })))
-        }
-        Expression::BooleanLiteral(lit) => {
-            Ok(Some(Object::Bool(Bool { value: lit.value })))
-        }
+        Expression::IntegerLiteral(lit) => Ok(Some(Object::Int(Int { value: lit.value }))),
+        Expression::BooleanLiteral(lit) => Ok(Some(Object::Bool(Bool { value: lit.value }))),
         Expression::FunctionLiteral(func) => {
             let fun = Function {
                 args: func.parameters,
@@ -140,10 +127,7 @@ fn eval_exp(
             };
             // if this function have identifier, bind to environment
             if func.ident.is_some() {
-                env.set(
-                    func.ident.unwrap().to_str(),
-                    Object::Function(fun.clone()),
-                );
+                env.set(func.ident.unwrap().to_str(), Object::Function(fun.clone()));
             }
             Ok(Some(Object::Function(fun)))
         }
@@ -151,7 +135,7 @@ fn eval_exp(
         Expression::InfixExpression(exp) => eval_infix_exp(exp, env),
         Expression::PrefixExpression(exp) => eval_prefix_exp(exp, env),
         Expression::IfExpression(exp) => eval_if_exp(exp, env),
-        Expression::CallExpression(_) => Err(()),
+        Expression::CallExpression(exp) => eval_call_exp(exp, env),
     }
 }
 
@@ -266,11 +250,7 @@ fn eval_infix_int_exp(left: Int, operator: Kind, right: Int) -> Result<Object, (
     }
 }
 
-fn eval_infix_bool_exp(
-    left: Bool,
-    operator: Kind,
-    right: Bool,
-) -> Result<Object, ()> {
+fn eval_infix_bool_exp(left: Bool, operator: Kind, right: Bool) -> Result<Object, ()> {
     match operator {
         Kind::And | Kind::Bit_And => Ok(Object::Bool(Bool {
             value: left.value && right.value,
@@ -349,10 +329,7 @@ fn eval_prefix_bool_exp(operator: Kind, right: Bool) -> Result<Object, ()> {
     }
 }
 
-fn eval_if_exp(
-    exp: IfExpression,
-    env: &mut Environment<String>,
-) -> Result<Option<Object>, ()> {
+fn eval_if_exp(exp: IfExpression, env: &mut Environment<String>) -> Result<Option<Object>, ()> {
     let condition_val = eval_exp(*exp.condition, env);
     if condition_val.is_err() {
         return condition_val;
@@ -369,27 +346,99 @@ fn eval_if_exp(
 
     if flag.value {
         return eval_stm(Statement::BlockStatement(exp.consequence), env);
-    } else if exp.alternative.is_some() {
+    }
+    if exp.alternative.is_some() {
         return eval_stm(Statement::BlockStatement(exp.alternative.unwrap()), env);
     }
-    return Ok(None);
+
+    Ok(None)
 }
 
-fn eval_call_exp(
-    exp: CallExpression,
-    env: &mut Environment<String>,
-) -> Result<Option<Object>, ()> {
-    let func = *exp.function;
-
+fn eval_call_exp(exp: CallExpression, env: &mut Environment<String>) -> Result<Option<Object>, ()> {
+    let func = eval_exp(*exp.function, env);
+    if func.is_err() {
+        return Err(());
+    }
+    if func.clone().unwrap().is_none() {
+        return Err(());
+    }
+    let func = func.unwrap().unwrap();
     match func {
-        Expression::FunctionLiteral(lit) => {
-
-            // excute unnamed function
+        Object::Function(func) => {
+            let args = eval_function_parameters(exp.arguments, env);
+            if args.is_err() {
+                return Err(());
+            }
+            let args = args.unwrap();
+            apply_function(func, args)
         }
-        Expression::Identifier(ident) => {}
-        __ => {
-            // add err
+        // func is not a function
+        __ => Err(()),
+    }
+}
+
+fn eval_function_parameters(
+    args: Vec<Expression>,
+    env: &mut Environment<String>,
+) -> Result<Vec<Object>, ()> {
+    let mut result: Vec<Object> = Vec::new();
+
+    for (idx, arg) in args.iter().enumerate() {
+        let evaluated = eval_exp(arg.clone(), env);
+
+        if evaluated.is_err() {
+            return Err(evaluated.err().unwrap());
+        }
+        if evaluated.clone().unwrap().is_none() {
+            // name err
             return Err(());
         }
+
+        result.push(evaluated.unwrap().unwrap())
+    }
+
+    Ok(result)
+}
+
+fn apply_function(fun: Function, args: Vec<Object>) -> Result<Option<Object>, ()> {
+    if args.len() != fun.args.len() {
+        return Err(());
+    }
+
+    let mut extended_env = extend_function_env(fun.clone(), args);
+    let evaluated = eval_stm(Statement::BlockStatement(fun.block), &mut extended_env);
+
+    if evaluated.is_err() {
+        return evaluated;
+    }
+    let evaluated = evaluated.unwrap();
+
+    Ok(unwrap_return_value(evaluated))
+}
+
+fn extend_function_env(fun: Function, args: Vec<Object>) -> Environment<String> {
+    let mut env = Environment::new_inner(fun.env);
+
+    // bind given args(object) to fun's parameters(ident)
+    for (idx, arg) in fun.args.iter().enumerate() {
+        env.set(arg.value.clone(), args[idx].clone());
+    }
+
+    env
+}
+/// unwrap return value to object.
+/// if given obj is not a return value, don't do anything
+fn unwrap_return_value(obj: Option<Object>) -> Option<Object> {
+    if obj.is_none() {
+        return obj;
+    }
+    let obj = obj.unwrap();
+
+    match obj.clone() {
+        Object::Return(rtv) => match rtv.value {
+            Some(val) => Some(*val),
+            None => None,
+        },
+        __ => Some(obj),
     }
 }
