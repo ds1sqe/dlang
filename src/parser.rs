@@ -2,12 +2,11 @@ use crate::{
     ast::{
         BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement,
         FunctionLiteral, Identifier, IfExpression, InfixExpression, IntegerLiteral, LetStatement,
-        PrefixExpression, Program, ReturnStatement, Statement,
+        PrefixExpression, Program, ReturnStatement, Statement, StringLiteral,
     },
     lexer::Lexer,
     parser::errors::InfixFunctionError,
-    token::Kind,
-    token::Token,
+    token::{Kind, Token},
 };
 
 use self::errors::{ParserError, PrefixFunctionError};
@@ -280,6 +279,15 @@ impl Parser {
         let value = self.cur_token.literal.parse().unwrap();
 
         BooleanLiteral {
+            token: self.cur_token.clone(),
+            value,
+        }
+    }
+
+    fn parse_string_literal(&mut self) -> StringLiteral {
+        let value = self.cur_token.literal.clone();
+
+        StringLiteral {
             token: self.cur_token.clone(),
             value,
         }
@@ -643,6 +651,10 @@ impl Parser {
                     return Err(errs);
                 }
                 Ok(Expression::IntegerLiteral(res.ok().unwrap()))
+            }
+            Kind::String => {
+                let res = self.parse_string_literal();
+                Ok(Expression::StringLiteral(res))
             }
             Kind::LPAREN => {
                 let res = self.parse_group_expression();

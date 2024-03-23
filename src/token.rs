@@ -43,7 +43,9 @@ pub enum Kind {
     If,
     Else,
     Return,
+
     Int,
+    String,
 }
 
 impl Kind {
@@ -91,6 +93,7 @@ impl Kind {
             Kind::Else => "else",
             Kind::Return => "return",
             Kind::Int => "Int",
+            Kind::String => "String",
         }
     }
 }

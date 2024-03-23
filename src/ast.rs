@@ -21,6 +21,7 @@ pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
     BooleanLiteral(BooleanLiteral),
+    StringLiteral(StringLiteral),
     FunctionLiteral(FunctionLiteral),
     InfixExpression(InfixExpression),
     PrefixExpression(PrefixExpression),
@@ -65,6 +66,7 @@ impl Nodetrait for Expression {
             Expression::IntegerLiteral(int) => int.literal(),
             Expression::BooleanLiteral(bool) => bool.literal(),
             Expression::FunctionLiteral(flit) => flit.literal(),
+            Expression::StringLiteral(slit) => slit.literal(),
             Expression::InfixExpression(ifix) => ifix.literal(),
             Expression::PrefixExpression(pfix) => pfix.literal(),
             Expression::IfExpression(ifx) => ifx.literal(),
@@ -78,6 +80,7 @@ impl Nodetrait for Expression {
             Expression::IntegerLiteral(int) => int.to_str(),
             Expression::BooleanLiteral(bool) => bool.to_str(),
             Expression::FunctionLiteral(flit) => flit.to_str(),
+            Expression::StringLiteral(slit) => slit.to_str(),
             Expression::InfixExpression(ifix) => ifix.to_str(),
             Expression::PrefixExpression(pfix) => pfix.to_str(),
             Expression::IfExpression(ifx) => ifx.to_str(),
@@ -157,6 +160,24 @@ impl Nodetrait for BooleanLiteral {
     }
     fn to_node(self) -> Node {
         Expression::BooleanLiteral(self).to_node()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct StringLiteral {
+    pub token: token::Token, // token::False or True
+    pub value: String,
+}
+
+impl Nodetrait for StringLiteral {
+    fn literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn to_str(&self) -> String {
+        self.value.clone().to_string()
+    }
+    fn to_node(self) -> Node {
+        Expression::StringLiteral(self).to_node()
     }
 }
 

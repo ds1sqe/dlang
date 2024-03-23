@@ -7,7 +7,7 @@ use crate::{
     },
     object::{
         environment::Environment, is_same_type, Bool, Function, Int, Object, ObjectTrait,
-        ObjectType, Return,
+        ObjectType, Return, StringObject,
     },
     token::Kind,
 };
@@ -125,6 +125,10 @@ fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Obj
         }
         Expression::IntegerLiteral(lit) => Ok(Some(Object::Int(Int { value: lit.value }))),
         Expression::BooleanLiteral(lit) => Ok(Some(Object::Bool(Bool { value: lit.value }))),
+        Expression::StringLiteral(lit) => {
+            Ok(Some(Object::String(StringObject { value: lit.value })))
+        }
+
         Expression::FunctionLiteral(func) => {
             let fun = Function {
                 args: func.parameters,

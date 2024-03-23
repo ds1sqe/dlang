@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use crate::token;
 use crate::token::Token;
+use crate::token::{self, Kind};
 pub mod errors;
 
 pub struct Lexer {
@@ -47,9 +47,8 @@ impl Lexer {
     fn peek_char(&self) -> char {
         if self.next_pos >= self.input.len() {
             return '\0';
-        } else {
-            return self.input.chars().nth(self.next_pos).unwrap();
         }
+        self.input.chars().nth(self.next_pos).unwrap()
     }
 
     fn skip_whitespace(&mut self) {
@@ -63,8 +62,7 @@ impl Lexer {
 
     fn read_id(&mut self) -> String {
         let start = self.pos;
-        while !self.peek_char().is_whitespace()
-            && self.peek_char().is_alphanumeric()
+        while !self.peek_char().is_whitespace() && self.peek_char().is_alphanumeric()
             || self.peek_char() == '_'
         {
             self.read_char();
@@ -74,15 +72,12 @@ impl Lexer {
 
     fn read_num(&mut self) -> Result<String, errors::LexerError> {
         let start = self.pos;
-        while !self.peek_char().is_whitespace()
-            && self.peek_char().is_alphanumeric()
-        {
+        while !self.peek_char().is_whitespace() && self.peek_char().is_alphanumeric() {
             if self.peek_char().is_alphabetic() {
                 let err = errors::LexerError {
                     pos_start: start,
                     pos_end: self.pos,
-                    reason: self.input[start..self.pos + 1].to_string()
-                        + " is not a numeric",
+                    reason: self.input[start..self.pos + 1].to_string() + " is not a numeric",
                 };
                 return Err(err);
             }
@@ -91,11 +86,30 @@ impl Lexer {
         Ok(self.input[start..self.pos + 1].to_string())
     }
 
+    fn read_string(&mut self) -> Result<String, errors::LexerError> {
+        let start = self.pos + 1;
+        while self.peek_char() != '"' && self.peek_char() != '\0' {
+            self.read_char();
+        }
+
+        if self.peek_char() == '\0' {
+            let err = errors::LexerError {
+                pos_start: start,
+                pos_end: self.pos,
+                reason: "closing (\") not found".to_string(),
+            };
+            return Err(err);
+        }
+
+        self.read_char();
+        Ok(self.input[start..self.pos].to_string())
+    }
+
     pub fn get_pos(&self) -> Position {
-        return Position {
+        Position {
             line_num: self.line_num,
             pos: self.pos,
-        };
+        }
     }
 
     /// get next token
@@ -165,6 +179,17 @@ impl Lexer {
                     token = Token::new(token::Kind::Bit_Or);
                 }
             }
+            '"' => {
+                let result = self.read_string();
+                println!("{:?}", result);
+                if result.is_ok() {
+                    token.kind = Kind::String;
+                    token.literal = result.ok().unwrap();
+                } else {
+                    token.literal = result.err().unwrap().reason;
+                }
+            }
+
             any => {
                 if any.is_alphabetic() {
                     token.literal = self.read_id();

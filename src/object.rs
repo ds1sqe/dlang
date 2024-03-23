@@ -11,6 +11,7 @@ pub enum Object {
     Return(Return),
     Int(Int),
     Bool(Bool),
+    String(StringObject),
     Function(Function),
 }
 
@@ -34,6 +35,7 @@ impl ObjectTrait for Object {
             Object::Int(x) => x.get_type(),
             Object::Bool(x) => x.get_type(),
             Object::Function(x) => x.get_type(),
+            Object::String(x) => x.get_type(),
         }
     }
 
@@ -42,6 +44,7 @@ impl ObjectTrait for Object {
             Object::Return(x) => x.to_str(),
             Object::Int(x) => x.to_str(),
             Object::Bool(x) => x.to_str(),
+            Object::String(x) => x.to_str(),
             Object::Function(x) => x.to_str(),
         };
         format!("Object(Enum): {}", inner)
@@ -86,6 +89,19 @@ impl ObjectTrait for Bool {
     }
     fn to_str(&self) -> String {
         format!("Bool:{}", self.value)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct StringObject {
+    pub value: String,
+}
+impl ObjectTrait for StringObject {
+    fn get_type(&self) -> ObjectType {
+        ObjectType::Bool
+    }
+    fn to_str(&self) -> String {
+        format!("String:{}", self.value)
     }
 }
 
