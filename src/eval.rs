@@ -1,3 +1,5 @@
+pub mod errors;
+
 use crate::{
     ast::{
         CallExpression, Expression, IfExpression, InfixExpression, Node, Nodetrait,
@@ -10,32 +12,34 @@ use crate::{
     token::Kind,
 };
 
-pub fn evaluate(node: Node, env: &mut Environment<String>) -> Result<Option<Object>, ()> {
+use self::errors::{ArgumentsLength, EvalError};
+
+pub fn evaluate(node: Node, env: &mut Environment<String>) -> Result<Option<Object>, EvalError> {
     match node {
         Node::Statement(stm) => eval_stm(stm, env),
         Node::Expression(exp) => eval_exp(exp, env),
     }
 }
 
-fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Object>, ()> {
+fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Object>, EvalError> {
     match stm {
         Statement::LetStatement(stm) => {
             let ident = stm.identifier;
 
             if stm.value.is_none() {
-                return Err(());
+                return Err(EvalError::LetStatementValueIsNone);
             }
 
-            let result = eval_exp(stm.value.unwrap(), env);
+            let result = eval_exp(stm.value.clone().unwrap(), env);
             if result.is_ok() {
                 let value = result.unwrap();
                 if value.is_some() {
                     env.set(ident.value, value.unwrap());
                     return Ok(None);
                 }
-                return Err(());
+                Err(EvalError::EvaluationOfExpressionIsNone(stm.value.unwrap()))
             } else {
-                return Err(());
+                Err(result.err().unwrap())
             }
         }
 
@@ -48,7 +52,7 @@ fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Obje
         Statement::BlockStatement(stm) => {
             let stms = stm.statements;
             // result of evaluation of statement block
-            let mut result: Result<Option<Object>, ()>;
+            let mut result: Result<Option<Object>, EvalError>;
 
             // clone outer-context here
             let mut env = Environment::new_inner(env.clone());
@@ -72,9 +76,8 @@ fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Obje
                                     if rt.value.is_some() {
                                         let val: Object = *rt.value.unwrap();
                                         return Ok(Some(val));
-                                    } else {
-                                        return Ok(None);
                                     }
+                                    return Ok(None);
                                 }
                                 // else continue evaluation of block statement
                                 _ => {}
@@ -84,7 +87,7 @@ fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Obje
                     }
                 }
             }
-            return result;
+            result
         }
 
         Statement::ReturnStatement(stm) => {
@@ -108,7 +111,7 @@ fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Obje
     }
 }
 
-fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Object>, ()> {
+fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Object>, EvalError> {
     match exp {
         Expression::Identifier(id_exp) => {
             let key = id_exp.value;
@@ -117,7 +120,7 @@ fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Obj
                 Ok(obj)
             } else {
                 // identifier not found
-                Err(())
+                Err(EvalError::IdentifierNotFound)
             }
         }
         Expression::IntegerLiteral(lit) => Ok(Some(Object::Int(Int { value: lit.value }))),
@@ -146,7 +149,7 @@ fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Obj
 fn eval_infix_exp(
     exp: InfixExpression,
     env: &mut Environment<String>,
-) -> Result<Option<Object>, ()> {
+) -> Result<Option<Object>, EvalError> {
     // check left, right is valid
     let left = eval_exp(*exp.left, env);
     if left.is_err() {
@@ -154,7 +157,7 @@ fn eval_infix_exp(
     }
     let left = left.unwrap();
     if left.is_none() {
-        return Err(());
+        return Err(EvalError::LeftExpressionIsNone);
     }
     let left = left.unwrap();
 
@@ -164,12 +167,12 @@ fn eval_infix_exp(
     }
     let right = right.unwrap();
     if right.is_none() {
-        return Err(());
+        return Err(EvalError::RightExpressionIsNone);
     }
     let right = right.unwrap();
 
     if !is_same_type(&left, &right) {
-        return Err(());
+        return Err(EvalError::NotSameType);
     }
 
     match left.get_type() {
@@ -181,7 +184,7 @@ fn eval_infix_exp(
                 return Err(result.err().unwrap());
             }
             let result = Some(result.unwrap());
-            return Ok(result);
+            Ok(result)
         }
         ObjectType::Bool => {
             let Object::Bool(left) = left else {unreachable!()};
@@ -192,15 +195,15 @@ fn eval_infix_exp(
                 return Err(result.err().unwrap());
             }
             let result = Some(result.unwrap());
-            return Ok(result);
+            Ok(result)
         }
         ObjectType::Function | ObjectType::Return => {
-            return Err(());
+            Err(EvalError::InvalidInfixOperationTarget(left.get_type()))
         }
     }
 }
 
-fn eval_infix_int_exp(left: Int, operator: Kind, right: Int) -> Result<Object, ()> {
+fn eval_infix_int_exp(left: Int, operator: Kind, right: Int) -> Result<Object, EvalError> {
     match operator {
         Kind::Plus => {
             let value = left.value + right.value;
@@ -216,8 +219,7 @@ fn eval_infix_int_exp(left: Int, operator: Kind, right: Int) -> Result<Object, (
         }
         Kind::Divide => {
             if right.value == 0 {
-                // TODO: add err
-                return Err(());
+                return Err(EvalError::DivideWithZero);
             }
             let value = left.value / right.value;
             Ok(Object::Int(Int { value }))
@@ -250,11 +252,11 @@ fn eval_infix_int_exp(left: Int, operator: Kind, right: Int) -> Result<Object, (
         Kind::Bit_Or => Ok(Object::Int(Int {
             value: left.value | right.value,
         })),
-        _ => Err(()),
+        oper => Err(EvalError::InvalidIntegerInfixOperation(oper)),
     }
 }
 
-fn eval_infix_bool_exp(left: Bool, operator: Kind, right: Bool) -> Result<Object, ()> {
+fn eval_infix_bool_exp(left: Bool, operator: Kind, right: Bool) -> Result<Object, EvalError> {
     match operator {
         Kind::And | Kind::Bit_And => Ok(Object::Bool(Bool {
             value: left.value && right.value,
@@ -262,9 +264,9 @@ fn eval_infix_bool_exp(left: Bool, operator: Kind, right: Bool) -> Result<Object
         Kind::Or | Kind::Bit_Or => Ok(Object::Bool(Bool {
             value: left.value || right.value,
         })),
-        __ => {
+        oper => {
             // add err
-            Err(())
+            Err(EvalError::InvalidBoolInfixOperation(oper))
         }
     }
 }
@@ -272,11 +274,11 @@ fn eval_infix_bool_exp(left: Bool, operator: Kind, right: Bool) -> Result<Object
 fn eval_prefix_exp(
     exp: PrefixExpression,
     env: &mut Environment<String>,
-) -> Result<Option<Object>, ()> {
+) -> Result<Option<Object>, EvalError> {
     let operator = exp.token.kind;
 
     // evaluate first
-    let result = eval_exp(*exp.right, env);
+    let result = eval_exp(*exp.right.clone(), env);
 
     if result.is_err() {
         return result;
@@ -284,8 +286,7 @@ fn eval_prefix_exp(
 
     let result = result.unwrap();
     if result.is_none() {
-        // add err
-        return Err(());
+        return Err(EvalError::EvaluationOfExpressionIsNone(*exp.right));
     }
     let obj = result.unwrap();
 
@@ -297,7 +298,7 @@ fn eval_prefix_exp(
             if result.is_err() {
                 return Err(result.err().unwrap());
             }
-            return Ok(Some(result.unwrap()));
+            Ok(Some(result.unwrap()))
         }
         ObjectType::Bool => {
             let Object::Bool(obj) = obj else {unreachable!()};
@@ -306,13 +307,15 @@ fn eval_prefix_exp(
             if result.is_err() {
                 return Err(result.err().unwrap());
             }
-            return Ok(Some(result.unwrap()));
+            Ok(Some(result.unwrap()))
         }
-        ObjectType::Function | ObjectType::Return => Err(()),
+        ObjectType::Function | ObjectType::Return => {
+            Err(EvalError::InvalidPrefixOperationTarget(obj.get_type()))
+        }
     }
 }
 
-fn eval_prefix_int_exp(operator: Kind, right: Int) -> Result<Object, ()> {
+fn eval_prefix_int_exp(operator: Kind, right: Int) -> Result<Object, EvalError> {
     match operator {
         Kind::Bang => Ok(Object::Int(Int {
             value: !right.value,
@@ -320,20 +323,23 @@ fn eval_prefix_int_exp(operator: Kind, right: Int) -> Result<Object, ()> {
         Kind::Minus => Ok(Object::Int(Int {
             value: -right.value,
         })),
-        __ => Err(()),
+        oper => Err(EvalError::InvalidIntegerPrefixOperation(oper)),
     }
 }
 
-fn eval_prefix_bool_exp(operator: Kind, right: Bool) -> Result<Object, ()> {
+fn eval_prefix_bool_exp(operator: Kind, right: Bool) -> Result<Object, EvalError> {
     match operator {
         Kind::Bang => Ok(Object::Bool(Bool {
             value: !right.value,
         })),
-        __ => Err(()),
+        oper => Err(EvalError::InvalidBoolPrefixOperation(oper)),
     }
 }
 
-fn eval_if_exp(exp: IfExpression, env: &mut Environment<String>) -> Result<Option<Object>, ()> {
+fn eval_if_exp(
+    exp: IfExpression,
+    env: &mut Environment<String>,
+) -> Result<Option<Object>, EvalError> {
     let condition_val = eval_exp(*exp.condition, env);
     if condition_val.is_err() {
         return condition_val;
@@ -341,12 +347,11 @@ fn eval_if_exp(exp: IfExpression, env: &mut Environment<String>) -> Result<Optio
 
     let obj = condition_val.unwrap();
     if obj.is_none() {
-        // name err
-        return Err(());
+        return Err(EvalError::ConditionIsNone);
     }
 
     let object = obj.unwrap();
-    let Object::Bool(flag) = object else { return Err(())};
+    let Object::Bool(flag) = object else { return Err(EvalError::NotABoolean(object))};
 
     if flag.value {
         return eval_stm(Statement::BlockStatement(exp.consequence), env);
@@ -358,44 +363,47 @@ fn eval_if_exp(exp: IfExpression, env: &mut Environment<String>) -> Result<Optio
     Ok(None)
 }
 
-fn eval_call_exp(exp: CallExpression, env: &mut Environment<String>) -> Result<Option<Object>, ()> {
+fn eval_call_exp(
+    exp: CallExpression,
+    env: &mut Environment<String>,
+) -> Result<Option<Object>, EvalError> {
     let func = eval_exp(*exp.function, env);
+
     if func.is_err() {
-        return Err(());
+        return Err(func.err().unwrap());
     }
     if func.clone().unwrap().is_none() {
-        return Err(());
+        return Err(EvalError::FunctionIsNone);
     }
     let func = func.unwrap().unwrap();
     match func {
         Object::Function(func) => {
             let args = eval_function_parameters(exp.arguments, env);
             if args.is_err() {
-                return Err(());
+                return Err(args.err().unwrap());
             }
             let args = args.unwrap();
             apply_function(func, args)
         }
         // func is not a function
-        __ => Err(()),
+        obj => Err(EvalError::NotAFunction(obj)),
     }
 }
 
 fn eval_function_parameters(
     args: Vec<Expression>,
     env: &mut Environment<String>,
-) -> Result<Vec<Object>, ()> {
+) -> Result<Vec<Object>, EvalError> {
     let mut result: Vec<Object> = Vec::new();
 
-    for (idx, arg) in args.iter().enumerate() {
+    for (_, arg) in args.iter().enumerate() {
         let evaluated = eval_exp(arg.clone(), env);
 
         if evaluated.is_err() {
             return Err(evaluated.err().unwrap());
         }
         if evaluated.clone().unwrap().is_none() {
-            // name err
-            return Err(());
+            return Err(EvalError::EvaluationOfExpressionIsNone(arg.clone()));
         }
 
         result.push(evaluated.unwrap().unwrap())
@@ -404,9 +412,12 @@ fn eval_function_parameters(
     Ok(result)
 }
 
-fn apply_function(fun: Function, args: Vec<Object>) -> Result<Option<Object>, ()> {
+fn apply_function(fun: Function, args: Vec<Object>) -> Result<Option<Object>, EvalError> {
     if args.len() != fun.args.len() {
-        return Err(());
+        return Err(EvalError::FunctionArgLengthNotMatched(ArgumentsLength {
+            function_args: fun.args.len(),
+            called_with: args.len(),
+        }));
     }
 
     let mut extended_env = extend_function_env(fun.clone(), args);

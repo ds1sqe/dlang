@@ -14,7 +14,7 @@ pub enum Object {
     Function(Function),
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ObjectType {
     Return,
     Int,
