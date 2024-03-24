@@ -1,28 +1,18 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc};
 
 use super::Object;
+
+pub type Environ<T> = Rc<RefCell<Environment<T>>>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Environment<T: Hash + Eq + PartialEq> {
     binding: HashMap<T, Object>,
-    outer: Option<Box<Self>>,
+    outer: Option<Environ<T>>,
     // 0 for global, the bigger is the outter
     level: usize,
 }
 
 impl<T: Hash + Eq + PartialEq> Environment<T> {
-    // get object ref from environment
-    pub fn get(&self, key: &T) -> Option<&Object> {
-        // first, try get object from current scope
-        let rst = self.binding.get(key);
-
-        if rst.is_none() && self.outer.is_some() {
-            // if not found, try get object from outer scope
-            return self.outer.as_ref().unwrap().get(key);
-        }
-        return rst;
-    }
-
     // get object clone from environment
     pub fn get_clone(&self, key: &T) -> Option<Object> {
         // first, try get object from current scope
@@ -30,9 +20,9 @@ impl<T: Hash + Eq + PartialEq> Environment<T> {
 
         if rst.is_none() && self.outer.is_some() {
             // if not found, try get object from outer scope
-            return self.outer.as_ref().unwrap().get_clone(key);
+            return self.outer.as_ref().unwrap().borrow().get_clone(&key);
         }
-        return rst.cloned();
+        rst.cloned()
     }
 
     // set object to environment
@@ -48,11 +38,11 @@ impl<T: Hash + Eq + PartialEq> Environment<T> {
         }
     }
 
-    pub fn new_inner(outer: Self) -> Self {
+    pub fn new_inner(outer: &Environ<T>) -> Self {
         Environment {
             binding: HashMap::new(),
-            level: outer.level + 1,
-            outer: Some(Box::new(outer)),
+            level: outer.borrow().level + 1,
+            outer: Some(Rc::clone(outer)),
         }
     }
 }

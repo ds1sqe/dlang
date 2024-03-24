@@ -1,20 +1,24 @@
 pub mod errors;
 
+use std::rc::Rc;
+
+use std::cell::RefCell;
+
 use crate::{
     ast::{
         CallExpression, Expression, IfExpression, InfixExpression, Node, Nodetrait,
         PrefixExpression, Program, Statement,
     },
     object::{
-        environment::Environment, is_same_type, Bool, Function, Int, Object, ObjectTrait,
-        ObjectType, Return, StringObject,
+        environment::{Environ, Environment},
+        is_same_type, Bool, Function, Int, Object, ObjectTrait, ObjectType, Return, StringObject,
     },
     token::Kind,
 };
 
 use self::errors::{ArgumentsLength, EvalError};
 
-pub fn evaluate(node: Node, env: &mut Environment<String>) -> Result<Option<Object>, EvalError> {
+pub fn evaluate(node: Node, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
     match node {
         Node::Program(pro) => eval_program(pro, env),
         Node::Statement(stm) => eval_stm(stm, env),
@@ -22,7 +26,7 @@ pub fn evaluate(node: Node, env: &mut Environment<String>) -> Result<Option<Obje
     }
 }
 
-fn eval_program(pro: Program, env: &mut Environment<String>) -> Result<Option<Object>, EvalError> {
+fn eval_program(pro: Program, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
     let mut result: Result<Option<Object>, EvalError> = Err(EvalError::BlankResult);
 
     for stm in pro.statements {
@@ -52,7 +56,7 @@ fn eval_program(pro: Program, env: &mut Environment<String>) -> Result<Option<Ob
     result
 }
 
-fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Object>, EvalError> {
+fn eval_stm(stm: Statement, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
     match stm {
         Statement::LetStatement(stm) => {
             let ident = stm.identifier;
@@ -71,10 +75,11 @@ fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Obje
                     if obj.get_type() == ObjectType::Function {
                         let Object::Function(mut fun) = obj else {unreachable!()};
                         fun.identifier = Some(ident.clone().value);
-                        env.set(ident.clone().value, Object::Function(fun));
+                        env.borrow_mut()
+                            .set(ident.clone().value, Object::Function(fun));
                     // if obj is not a function,
                     } else {
-                        env.set(ident.clone().value, obj);
+                        env.borrow_mut().set(ident.clone().value, obj);
                     }
 
                     return Ok(None);
@@ -97,13 +102,13 @@ fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Obje
             let mut result: Result<Option<Object>, EvalError>;
 
             // clone outer-context here
-            let mut env = Environment::new_inner(env.clone());
+            let env = Rc::new(RefCell::new(Environment::new_inner(env)));
 
             // initialize result to prepare case of blank block
             result = Ok(None);
 
             for stm in stms {
-                result = eval_stm(stm, &mut env);
+                result = eval_stm(stm, &env);
                 // this is clone for prenventing falty error of move
                 match result.clone() {
                     Err(_) => {
@@ -153,11 +158,11 @@ fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Obje
     }
 }
 
-fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Object>, EvalError> {
+fn eval_exp(exp: Expression, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
     match exp {
         Expression::Identifier(id_exp) => {
             let key = id_exp.value;
-            let obj = env.get_clone(&key);
+            let obj = env.borrow().get_clone(&key);
             if obj.is_some() {
                 Ok(obj)
             } else {
@@ -177,12 +182,14 @@ fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Obj
                 args: func.parameters,
                 block: func.body,
                 // have to clone to catch the current lexical environment
-                env: env.clone(),
+                env: Rc::clone(&env),
             };
+
             // if this function have identifier, bind to environment
             if func.ident.is_some() {
                 fun.identifier = Some(func.ident.as_ref().unwrap().to_str());
-                env.set(func.ident.unwrap().to_str(), Object::Function(fun.clone()));
+                env.borrow_mut()
+                    .set(func.ident.unwrap().to_str(), Object::Function(fun.clone()));
             }
             Ok(Some(Object::Function(fun)))
         }
@@ -196,7 +203,7 @@ fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Obj
 
 fn eval_infix_exp(
     exp: InfixExpression,
-    env: &mut Environment<String>,
+    env: &Environ<String>,
 ) -> Result<Option<Object>, EvalError> {
     // check left, right is valid
     let left = eval_exp(*exp.left, env);
@@ -362,7 +369,7 @@ fn eval_infix_string_exp(
 
 fn eval_prefix_exp(
     exp: PrefixExpression,
-    env: &mut Environment<String>,
+    env: &Environ<String>,
 ) -> Result<Option<Object>, EvalError> {
     let operator = exp.token.kind;
 
@@ -425,10 +432,7 @@ fn eval_prefix_bool_exp(operator: Kind, right: Bool) -> Result<Object, EvalError
     }
 }
 
-fn eval_if_exp(
-    exp: IfExpression,
-    env: &mut Environment<String>,
-) -> Result<Option<Object>, EvalError> {
+fn eval_if_exp(exp: IfExpression, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
     let condition_val = eval_exp(*exp.condition, env);
     if condition_val.is_err() {
         return condition_val;
@@ -452,13 +456,8 @@ fn eval_if_exp(
     Ok(None)
 }
 
-fn eval_call_exp(
-    exp: CallExpression,
-    env: &mut Environment<String>,
-) -> Result<Option<Object>, EvalError> {
+fn eval_call_exp(exp: CallExpression, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
     let func = eval_exp(*exp.function, env);
-
-    dbg!(&func);
 
     if func.is_err() {
         return Err(func.err().unwrap());
@@ -468,19 +467,13 @@ fn eval_call_exp(
     }
     let func = func.unwrap().unwrap();
     match func {
-        Object::Function(mut func) => {
-            if func.identifier.as_ref().is_some() {
-                func.env.set(
-                    func.identifier.clone().unwrap(),
-                    Object::Function(func.clone()),
-                );
-            }
+        Object::Function(func) => {
             let args = eval_function_parameters(exp.arguments, env);
             if args.is_err() {
                 return Err(args.err().unwrap());
             }
             let args = args.unwrap();
-            apply_function(func, args)
+            apply_function(&func, args)
         }
         // func is not a function
         obj => Err(EvalError::NotAFunction(obj)),
@@ -489,7 +482,7 @@ fn eval_call_exp(
 
 fn eval_function_parameters(
     args: Vec<Expression>,
-    env: &mut Environment<String>,
+    env: &Environ<String>,
 ) -> Result<Vec<Object>, EvalError> {
     let mut result: Vec<Object> = Vec::new();
 
@@ -509,7 +502,7 @@ fn eval_function_parameters(
     Ok(result)
 }
 
-fn apply_function(fun: Function, args: Vec<Object>) -> Result<Option<Object>, EvalError> {
+fn apply_function(fun: &Function, args: Vec<Object>) -> Result<Option<Object>, EvalError> {
     if args.len() != fun.args.len() {
         return Err(EvalError::FunctionArgLengthNotMatched(ArgumentsLength {
             function_args: fun.args.len(),
@@ -517,11 +510,9 @@ fn apply_function(fun: Function, args: Vec<Object>) -> Result<Option<Object>, Ev
         }));
     }
 
-    let mut extended_env = extend_function_env(fun.clone(), args);
+    let extended_env = extend_function_env(fun, args);
 
-    dbg!(&extended_env);
-
-    let evaluated = eval_stm(Statement::BlockStatement(fun.block), &mut extended_env);
+    let evaluated = eval_stm(Statement::BlockStatement(fun.block.clone()), &extended_env);
 
     if evaluated.is_err() {
         return evaluated;
@@ -531,15 +522,15 @@ fn apply_function(fun: Function, args: Vec<Object>) -> Result<Option<Object>, Ev
     Ok(unwrap_return_value(evaluated))
 }
 
-fn extend_function_env(fun: Function, args: Vec<Object>) -> Environment<String> {
-    let mut env = Environment::new_inner(fun.env);
+fn extend_function_env(fun: &Function, args: Vec<Object>) -> Environ<String> {
+    let mut env = Environment::new_inner(&fun.env);
 
     // bind given args(object) to fun's parameters(ident)
     for (idx, arg) in fun.args.iter().enumerate() {
         env.set(arg.value.clone(), args[idx].clone());
     }
 
-    env
+    Rc::new(RefCell::new(env))
 }
 /// unwrap return value to object.
 /// if given obj is not a return value, don't do anything

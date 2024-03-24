@@ -1,4 +1,8 @@
-use std::io::{self, BufRead, Write};
+use std::{
+    cell::RefCell,
+    io::{self, BufRead, Write},
+    rc::Rc,
+};
 
 use crate::{
     ast::Nodetrait,
@@ -13,7 +17,8 @@ const PROMPT: &str = "-> ";
 pub fn start() {
     let mut buf = String::new();
     let mut stdin = io::stdin().lock(); // We get `Stdin` here.
-    let mut env: Environment<String> = Environment::new();
+
+    let env = Rc::new(RefCell::new(Environment::new()));
 
     let debug_lexer = false;
     let debug_parser = false;
@@ -25,8 +30,9 @@ pub fn start() {
         io::stdout().flush().unwrap();
         match stdin.read_line(&mut buf) {
             Ok(_) => {
-                if buf == "printenv" {
-                    println!("{:?}", env)
+                if buf == "printenv\n" {
+                    dbg!(Rc::weak_count(&env));
+                    dbg!(Rc::strong_count(&env));
                 }
 
                 let lexer = Lexer::new(buf.clone());
@@ -54,7 +60,7 @@ pub fn start() {
 
                 if program.is_ok() {
                     let program = program.unwrap();
-                    let result = evaluate(program.to_node(), &mut env);
+                    let result = evaluate(program.to_node(), &env);
 
                     if debug_evaluator {
                         println!("Debug Output (Eval) >> {:?}", result);

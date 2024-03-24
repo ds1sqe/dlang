@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use dlang::{
     ast::Nodetrait,
     eval::{
@@ -44,7 +46,7 @@ fn test_eval(input: String) -> Result<Option<Object>, EvalError> {
     let mut parser = parser::Parser::new(lex);
     let prog = parser.parse().unwrap();
 
-    let mut env = Environment::new();
+    let mut env = Rc::new(RefCell::new(Environment::new()));
 
     evaluate(prog.to_node(), &mut env)
 }
@@ -424,6 +426,7 @@ fn test_eval_function() {
 
     for (idx, test) in tests.cases.iter().enumerate() {
         let res = test_eval(test.input.clone());
+        dbg!(&res);
         test_function_with_result(idx, test.expect.clone(), res);
     }
 }

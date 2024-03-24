@@ -4,7 +4,7 @@ use std::fmt::Debug;
 
 use crate::ast::{BlockStatement, Identifier, Nodetrait};
 
-use self::environment::Environment;
+use self::environment::Environ;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Object {
@@ -111,8 +111,9 @@ pub struct Function {
     pub identifier: Option<String>,
     pub args: Vec<Identifier>,
     pub block: BlockStatement,
-    pub env: Environment<String>,
+    pub env: Environ<String>,
 }
+
 impl ObjectTrait for Function {
     fn get_type(&self) -> ObjectType {
         ObjectType::Function
