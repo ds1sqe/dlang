@@ -65,7 +65,18 @@ fn eval_stm(stm: Statement, env: &mut Environment<String>) -> Result<Option<Obje
             if result.is_ok() {
                 let value = result.unwrap();
                 if value.is_some() {
-                    env.set(ident.value, value.unwrap());
+                    let obj = value.unwrap();
+
+                    // if obj is a function,
+                    if obj.get_type() == ObjectType::Function {
+                        let Object::Function(mut fun) = obj else {unreachable!()};
+                        fun.identifier = Some(ident.clone().value);
+                        env.set(ident.clone().value, Object::Function(fun));
+                    // if obj is not a function,
+                    } else {
+                        env.set(ident.clone().value, obj);
+                    }
+
                     return Ok(None);
                 }
                 Err(EvalError::EvaluationOfExpressionIsNone(stm.value.unwrap()))
@@ -161,7 +172,8 @@ fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Obj
         }
 
         Expression::FunctionLiteral(func) => {
-            let fun = Function {
+            let mut fun = Function {
+                identifier: None,
                 args: func.parameters,
                 block: func.body,
                 // have to clone to catch the current lexical environment
@@ -169,6 +181,7 @@ fn eval_exp(exp: Expression, env: &mut Environment<String>) -> Result<Option<Obj
             };
             // if this function have identifier, bind to environment
             if func.ident.is_some() {
+                fun.identifier = Some(func.ident.as_ref().unwrap().to_str());
                 env.set(func.ident.unwrap().to_str(), Object::Function(fun.clone()));
             }
             Ok(Some(Object::Function(fun)))
@@ -445,6 +458,8 @@ fn eval_call_exp(
 ) -> Result<Option<Object>, EvalError> {
     let func = eval_exp(*exp.function, env);
 
+    dbg!(&func);
+
     if func.is_err() {
         return Err(func.err().unwrap());
     }
@@ -453,7 +468,13 @@ fn eval_call_exp(
     }
     let func = func.unwrap().unwrap();
     match func {
-        Object::Function(func) => {
+        Object::Function(mut func) => {
+            if func.identifier.as_ref().is_some() {
+                func.env.set(
+                    func.identifier.clone().unwrap(),
+                    Object::Function(func.clone()),
+                );
+            }
             let args = eval_function_parameters(exp.arguments, env);
             if args.is_err() {
                 return Err(args.err().unwrap());
@@ -497,6 +518,9 @@ fn apply_function(fun: Function, args: Vec<Object>) -> Result<Option<Object>, Ev
     }
 
     let mut extended_env = extend_function_env(fun.clone(), args);
+
+    dbg!(&extended_env);
+
     let evaluated = eval_stm(Statement::BlockStatement(fun.block), &mut extended_env);
 
     if evaluated.is_err() {

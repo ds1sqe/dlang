@@ -2,7 +2,7 @@ pub mod environment;
 
 use std::fmt::Debug;
 
-use crate::ast::{BlockStatement, Identifier};
+use crate::ast::{BlockStatement, Identifier, Nodetrait};
 
 use self::environment::Environment;
 
@@ -108,6 +108,7 @@ impl ObjectTrait for StringObject {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Function {
+    pub identifier: Option<String>,
     pub args: Vec<Identifier>,
     pub block: BlockStatement,
     pub env: Environment<String>,
@@ -117,10 +118,21 @@ impl ObjectTrait for Function {
         ObjectType::Function
     }
     fn to_str(&self) -> String {
-        format!(
-            "Function: args <{:?}> block<{:?}> env<{:?}>",
-            self.args, self.block, self.env
-        )
+        let mut buf = String::new();
+        if self.identifier.is_some() {
+            buf += &format!("fn {}", &self.identifier.clone().unwrap());
+        }
+        let mut arguments = Vec::new();
+        for arg in self.args.clone() {
+            arguments.push(arg.to_str())
+        }
+        buf += "(";
+        arguments.join(", ");
+        buf += ") {\n";
+        format!("{:?}", self.block);
+        buf += "}";
+
+        buf
     }
 }
 
