@@ -182,7 +182,7 @@ fn eval_exp(exp: Expression, env: &Environ<String>) -> Result<Option<Object>, Ev
                 args: func.parameters,
                 block: func.body,
                 // have to clone to catch the current lexical environment
-                env: Rc::clone(&env),
+                env: Rc::downgrade(&env),
             };
 
             // if this function have identifier, bind to environment
@@ -473,7 +473,7 @@ fn eval_call_exp(exp: CallExpression, env: &Environ<String>) -> Result<Option<Ob
                 return Err(args.err().unwrap());
             }
             let args = args.unwrap();
-            apply_function(&func, args)
+            apply_function(func, args)
         }
         // func is not a function
         obj => Err(EvalError::NotAFunction(obj)),
@@ -502,7 +502,7 @@ fn eval_function_parameters(
     Ok(result)
 }
 
-fn apply_function(fun: &Function, args: Vec<Object>) -> Result<Option<Object>, EvalError> {
+fn apply_function(fun: Function, args: Vec<Object>) -> Result<Option<Object>, EvalError> {
     if args.len() != fun.args.len() {
         return Err(EvalError::FunctionArgLengthNotMatched(ArgumentsLength {
             function_args: fun.args.len(),
@@ -510,9 +510,13 @@ fn apply_function(fun: &Function, args: Vec<Object>) -> Result<Option<Object>, E
         }));
     }
 
-    let extended_env = extend_function_env(fun, args);
+    let extended_env = extend_function_env(fun.clone(), args);
 
-    let evaluated = eval_stm(Statement::BlockStatement(fun.block.clone()), &extended_env);
+    if extended_env.is_err() {
+        return Err(extended_env.unwrap_err());
+    }
+
+    let evaluated = eval_stm(Statement::BlockStatement(fun.block), &extended_env.unwrap());
 
     if evaluated.is_err() {
         return evaluated;
@@ -522,15 +526,21 @@ fn apply_function(fun: &Function, args: Vec<Object>) -> Result<Option<Object>, E
     Ok(unwrap_return_value(evaluated))
 }
 
-fn extend_function_env(fun: &Function, args: Vec<Object>) -> Environ<String> {
-    let mut env = Environment::new_inner(&fun.env);
+fn extend_function_env(fun: Function, args: Vec<Object>) -> Result<Environ<String>, EvalError> {
+    let opt_rc = &fun.env.upgrade();
+
+    if opt_rc.is_none() {
+        return Err(EvalError::EnvironmentHasDropped);
+    }
+
+    let mut env = Environment::new_inner(&opt_rc.clone().unwrap());
 
     // bind given args(object) to fun's parameters(ident)
     for (idx, arg) in fun.args.iter().enumerate() {
         env.set(arg.value.clone(), args[idx].clone());
     }
 
-    Rc::new(RefCell::new(env))
+    Ok(Rc::new(RefCell::new(env)))
 }
 /// unwrap return value to object.
 /// if given obj is not a return value, don't do anything

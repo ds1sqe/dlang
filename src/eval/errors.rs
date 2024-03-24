@@ -7,6 +7,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq)]
 pub enum EvalError {
     BlankResult,
+    EnvironmentHasDropped,
 
     LetStatementValueIsNone,
     EvaluationOfExpressionIsNone(Expression),

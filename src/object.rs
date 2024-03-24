@@ -1,10 +1,10 @@
 pub mod environment;
 
-use std::fmt::Debug;
+use std::{cell::RefCell, fmt::Debug, rc::Weak};
 
 use crate::ast::{BlockStatement, Identifier, Nodetrait};
 
-use self::environment::Environ;
+use self::environment::{Environ, Environment};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Object {
@@ -106,12 +106,18 @@ impl ObjectTrait for StringObject {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Function {
     pub identifier: Option<String>,
     pub args: Vec<Identifier>,
     pub block: BlockStatement,
-    pub env: Environ<String>,
+    pub env: Weak<RefCell<Environment<String>>>,
+}
+
+impl PartialEq for Function {
+    fn eq(&self, other: &Self) -> bool {
+        self.identifier == other.identifier && self.args == other.args && self.block == other.block
+    }
 }
 
 impl ObjectTrait for Function {

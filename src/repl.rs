@@ -31,6 +31,7 @@ pub fn start() {
         match stdin.read_line(&mut buf) {
             Ok(_) => {
                 if buf == "printenv\n" {
+                    dbg!(&env);
                     dbg!(Rc::weak_count(&env));
                     dbg!(Rc::strong_count(&env));
                 }
