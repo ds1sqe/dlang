@@ -1,8 +1,9 @@
 use crate::{
     ast::{
-        BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement,
-        FunctionLiteral, Identifier, IfExpression, InfixExpression, IntegerLiteral, LetStatement,
-        PrefixExpression, Program, ReturnStatement, Statement, StringLiteral,
+        ArrayLiteral, BlockStatement, BooleanLiteral, CallExpression, Expression,
+        ExpressionStatement, FunctionLiteral, Identifier, IfExpression,
+        InfixExpression, IntegerLiteral, LetStatement, PrefixExpression, Program,
+        ReturnStatement, Statement, StringLiteral,
     },
     lexer::Lexer,
     parser::errors::InfixFunctionError,
@@ -209,7 +210,9 @@ impl Parser {
         Ok(stm)
     }
 
-    fn parse_return_statement(&mut self) -> Result<ReturnStatement, Vec<Box<dyn ParserError>>> {
+    fn parse_return_statement(
+        &mut self,
+    ) -> Result<ReturnStatement, Vec<Box<dyn ParserError>>> {
         let mut stm = ReturnStatement {
             token: self.cur_token.clone(), // cur token is return
             value: None,
@@ -222,7 +225,8 @@ impl Parser {
             if res.is_err() {
                 let mut errs = res.unwrap_err();
                 errs.push(Box::new(errors::ParseError {
-                    detail: "faild on parsing value (on return statement)".to_string(),
+                    detail: "faild on parsing value (on return statement)"
+                        .to_string(),
                     position: self.lexer.get_pos(),
                 }));
                 return Err(errs);
@@ -261,7 +265,9 @@ impl Parser {
         }
     }
 
-    fn parse_integer_literal(&mut self) -> Result<IntegerLiteral, errors::PrefixFunctionError> {
+    fn parse_integer_literal(
+        &mut self,
+    ) -> Result<IntegerLiteral, errors::PrefixFunctionError> {
         let value = self.cur_token.literal.parse();
         if value.is_err() {
             return Err(errors::PrefixFunctionError {
@@ -298,7 +304,9 @@ impl Parser {
         }
     }
 
-    fn parse_block_statement(&mut self) -> Result<BlockStatement, Vec<Box<dyn ParserError>>> {
+    fn parse_block_statement(
+        &mut self,
+    ) -> Result<BlockStatement, Vec<Box<dyn ParserError>>> {
         let token = self.cur_token.clone();
 
         if token.kind != Kind::LBRACE {
@@ -313,7 +321,9 @@ impl Parser {
 
         let mut statements = Vec::new();
 
-        while self.cur_token.kind != Kind::RBRACE && self.cur_token.kind != Kind::EOF {
+        while self.cur_token.kind != Kind::RBRACE
+            && self.cur_token.kind != Kind::EOF
+        {
             let stm = self.parse_statement();
             if stm.is_err() {
                 let mut errs = stm.err().unwrap();
@@ -331,7 +341,8 @@ impl Parser {
         if self.cur_token.kind != Kind::RBRACE {
             let mut errs: Vec<Box<dyn ParserError>> = Vec::new();
             errs.push(Box::new(errors::ParseError {
-                detail: "matching RBRACE not found (on block Statement)".to_string(),
+                detail: "matching RBRACE not found (on block Statement)"
+                    .to_string(),
                 position: self.lexer.get_pos(),
             }));
             return Err(errs);
@@ -340,7 +351,9 @@ impl Parser {
         Ok(BlockStatement { token, statements })
     }
 
-    fn parse_prefix_expression(&mut self) -> Result<Expression, Vec<Box<dyn ParserError>>> {
+    fn parse_prefix_expression(
+        &mut self,
+    ) -> Result<Expression, Vec<Box<dyn ParserError>>> {
         let token = self.cur_token.clone();
         self.next();
         let exp = self.parse_expression(Precedence::Prefix);
@@ -355,7 +368,9 @@ impl Parser {
         }))
     }
 
-    fn parse_group_expression(&mut self) -> Result<Expression, Vec<Box<dyn ParserError>>> {
+    fn parse_group_expression(
+        &mut self,
+    ) -> Result<Expression, Vec<Box<dyn ParserError>>> {
         self.next(); // consume LPAREN
         let exp = self.parse_expression(Precedence::Lowest);
         if exp.is_err() {
@@ -374,7 +389,9 @@ impl Parser {
         exp
     }
 
-    fn parse_if_expression(&mut self) -> Result<IfExpression, Vec<Box<dyn ParserError>>> {
+    fn parse_if_expression(
+        &mut self,
+    ) -> Result<IfExpression, Vec<Box<dyn ParserError>>> {
         let if_token = self.cur_token.clone();
         if !self.expect_next_is(&Kind::LPAREN) {
             let mut errs: Vec<Box<dyn ParserError>> = Vec::new();
@@ -391,7 +408,9 @@ impl Parser {
         if condition.is_err() {
             let mut errs: Vec<Box<dyn ParserError>> = condition.err().unwrap();
             errs.push(Box::new(errors::ParseError {
-                detail: "Faild to parse inner condition expression (on If expression)".to_string(),
+                detail:
+                    "Faild to parse inner condition expression (on If expression)"
+                        .to_string(),
                 position: self.lexer.get_pos(),
             }));
             return Err(errs);
@@ -422,7 +441,8 @@ impl Parser {
         if consequence.is_err() {
             let mut errs: Vec<Box<dyn ParserError>> = consequence.err().unwrap();
             errs.push(Box::new(errors::ParseError {
-                detail: "Faild to parse consequence expression (on If expression)".to_string(),
+                detail: "Faild to parse consequence expression (on If expression)"
+                    .to_string(),
                 position: self.lexer.get_pos(),
             }));
             return Err(errs);
@@ -464,7 +484,9 @@ impl Parser {
         })
     }
 
-    fn parse_function_literal(&mut self) -> Result<FunctionLiteral, Vec<Box<dyn ParserError>>> {
+    fn parse_function_literal(
+        &mut self,
+    ) -> Result<FunctionLiteral, Vec<Box<dyn ParserError>>> {
         let token = self.cur_token.clone();
         let mut ident = None;
 
@@ -489,7 +511,8 @@ impl Parser {
             let mut errs: Vec<Box<dyn ParserError>> = Vec::new();
             errs.push(Box::new(params.err().unwrap()));
             errs.push(Box::new(errors::ParseError {
-                detail: "Error while parsing parmams (on Function literal)".to_string(),
+                detail: "Error while parsing parmams (on Function literal)"
+                    .to_string(),
                 position: self.lexer.get_pos(),
             }));
             return Err(errs);
@@ -510,7 +533,8 @@ impl Parser {
         if body.is_err() {
             let mut errs: Vec<Box<dyn ParserError>> = body.err().unwrap();
             errs.push(Box::new(errors::ParseError {
-                detail: "Error occurs in innerblock (on Function literal)".to_string(),
+                detail: "Error occurs in innerblock (on Function literal)"
+                    .to_string(),
                 position: self.lexer.get_pos(),
             }));
             return Err(errs);
@@ -525,7 +549,9 @@ impl Parser {
         })
     }
 
-    fn parse_function_parameters(&mut self) -> Result<Vec<Identifier>, errors::ParseError> {
+    fn parse_function_parameters(
+        &mut self,
+    ) -> Result<Vec<Identifier>, errors::ParseError> {
         let mut identifiers = Vec::new();
 
         if self.peek_next_is(&Kind::RPAREN) {
@@ -535,7 +561,8 @@ impl Parser {
 
         if !self.expect_next_is(&Kind::Ident) {
             return Err(errors::ParseError {
-                detail: "Ident token not found (on parsing function params)".to_string(),
+                detail: "Ident token not found (on parsing function params)"
+                    .to_string(),
                 position: self.lexer.get_pos(),
             });
         } // somethings wrong.
@@ -549,7 +576,8 @@ impl Parser {
             self.next(); // consume comma
             if !self.expect_next_is(&Kind::Ident) {
                 return Err(errors::ParseError {
-                    detail: "Ident token not found (on parsing function params)".to_string(),
+                    detail: "Ident token not found (on parsing function params)"
+                        .to_string(),
                     position: self.lexer.get_pos(),
                 });
             } // got next id
@@ -561,7 +589,8 @@ impl Parser {
         }
         if !self.expect_next_is(&Kind::RPAREN) {
             return Err(errors::ParseError {
-                detail: "matching RPAREN not found (on parsing function params)".to_string(),
+                detail: "matching RPAREN not found (on parsing function params)"
+                    .to_string(),
                 position: self.lexer.get_pos(),
             });
         }
@@ -578,7 +607,8 @@ impl Parser {
         if arguments.is_err() {
             let mut errs: Vec<Box<dyn ParserError>> = arguments.err().unwrap();
             errs.push(Box::new(errors::ParseError {
-                detail: "Error occurs in innerblock (on Function literal)".to_string(),
+                detail: "Error occurs in innerblock (on Function literal)"
+                    .to_string(),
                 position: self.lexer.get_pos(),
             }));
             return Err(errs);
@@ -592,7 +622,9 @@ impl Parser {
         })
     }
 
-    fn parse_call_args(&mut self) -> Result<Vec<Expression>, Vec<Box<dyn ParserError>>> {
+    fn parse_call_args(
+        &mut self,
+    ) -> Result<Vec<Expression>, Vec<Box<dyn ParserError>>> {
         let mut args = Vec::new();
         if self.peek_next_is(&Kind::RPAREN) {
             self.next(); // consume RPAREN
@@ -604,7 +636,8 @@ impl Parser {
         if res.is_err() {
             let mut errs = res.err().unwrap();
             errs.push(Box::new(errors::ParseError {
-                detail: "faild to parse inner expression (on parse call args)".to_string(),
+                detail: "faild to parse inner expression (on parse call args)"
+                    .to_string(),
                 position: self.lexer.get_pos(),
             }));
             return Err(errs);
@@ -620,7 +653,8 @@ impl Parser {
             if res.is_err() {
                 let mut errs = res.err().unwrap();
                 errs.push(Box::new(errors::ParseError {
-                    detail: "faild to parse inner expression (on parse call args)".to_string(),
+                    detail: "faild to parse inner expression (on parse call args)"
+                        .to_string(),
                     position: self.lexer.get_pos(),
                 }));
                 return Err(errs);
@@ -632,7 +666,8 @@ impl Parser {
         if !self.expect_next_is(&Kind::RPAREN) {
             let mut errs: Vec<Box<dyn ParserError>> = Vec::new();
             errs.push(Box::new(errors::ParseError {
-                detail: "matching RPAREN not found (on parse call args)".to_string(),
+                detail: "matching RPAREN not found (on parse call args)"
+                    .to_string(),
                 position: self.lexer.get_pos(),
             }));
             return Err(errs);
@@ -641,7 +676,64 @@ impl Parser {
         Ok(args)
     }
 
-    fn parse_prefix(&mut self, kind: &Kind) -> Result<Expression, Vec<Box<dyn ParserError>>> {
+    fn parse_array_elements(
+        &mut self,
+    ) -> Result<Vec<Expression>, Vec<Box<dyn ParserError>>> {
+        let mut elements = Vec::new();
+        if self.peek_next_is(&Kind::RBRACKET) {
+            self.next(); // consume RBRACKET
+            return Ok(elements);
+        }
+        self.next();
+
+        let res = self.parse_expression(Precedence::Lowest);
+        if res.is_err() {
+            let mut errs = res.err().unwrap();
+            errs.push(Box::new(errors::ParseError {
+                detail: "faild to parse inner expression (on parse call args)"
+                    .to_string(),
+                position: self.lexer.get_pos(),
+            }));
+            return Err(errs);
+        }
+
+        elements.push(res.unwrap());
+
+        while self.peek_next_is(&Kind::Comma) {
+            self.next(); // consume Comma
+            self.next();
+
+            let res = self.parse_expression(Precedence::Lowest);
+            if res.is_err() {
+                let mut errs = res.err().unwrap();
+                errs.push(Box::new(errors::ParseError {
+                    detail: "faild to parse inner expression (on parse call args)"
+                        .to_string(),
+                    position: self.lexer.get_pos(),
+                }));
+                return Err(errs);
+            }
+
+            elements.push(res.unwrap());
+        }
+
+        if !self.expect_next_is(&Kind::RBRACKET) {
+            let mut errs: Vec<Box<dyn ParserError>> = Vec::new();
+            errs.push(Box::new(errors::ParseError {
+                detail: "matching RBRACKET not found (on parse call args)"
+                    .to_string(),
+                position: self.lexer.get_pos(),
+            }));
+            return Err(errs);
+        }
+
+        Ok(elements)
+    }
+
+    fn parse_prefix(
+        &mut self,
+        kind: &Kind,
+    ) -> Result<Expression, Vec<Box<dyn ParserError>>> {
         match kind {
             Kind::Ident => Ok(Expression::Identifier(self.parse_identifier())),
             Kind::Int => {
@@ -677,13 +769,16 @@ impl Parser {
                     errs.push(Box::new(PrefixFunctionError {
                         detail: "failed to prefix expression".to_string(),
                         position: self.lexer.get_pos(),
-                        kind: errors::PrefixFunctionErrorKind::PrefixExpressionError,
+                        kind:
+                            errors::PrefixFunctionErrorKind::PrefixExpressionError,
                     }));
                     return Err(errs);
                 }
                 Ok(res.ok().unwrap())
             }
-            Kind::True | Kind::False => Ok(Expression::BooleanLiteral(self.parse_bool_literal())),
+            Kind::True | Kind::False => {
+                Ok(Expression::BooleanLiteral(self.parse_bool_literal()))
+            }
             Kind::If => {
                 let res = self.parse_if_expression();
                 if res.is_err() {
@@ -710,6 +805,21 @@ impl Parser {
                 }
                 Ok(Expression::FunctionLiteral(res.ok().unwrap()))
             }
+            Kind::LBRACKET => {
+                let res = self.parse_array_elements();
+                if res.is_err() {
+                    let mut errs: Vec<Box<dyn ParserError>> = res.err().unwrap();
+                    errs.push(Box::new(PrefixFunctionError {
+                        detail: "failed to parse array elements".to_string(),
+                        position: self.lexer.get_pos(),
+                        kind: errors::PrefixFunctionErrorKind::FunctionLiteralError,
+                    }));
+                    return Err(errs);
+                }
+                Ok(Expression::ArrayLiteral(ArrayLiteral {
+                    elements: res.unwrap(),
+                }))
+            }
             not_matched => {
                 let mut errs: Vec<Box<dyn ParserError>> = Vec::new();
                 errs.push(Box::new(PrefixFunctionError {
@@ -725,7 +835,10 @@ impl Parser {
         }
     }
 
-    fn parse_infix(&mut self, left: Expression) -> Result<Expression, Vec<Box<dyn ParserError>>> {
+    fn parse_infix(
+        &mut self,
+        left: Expression,
+    ) -> Result<Expression, Vec<Box<dyn ParserError>>> {
         let cur_token = self.cur_token.clone();
 
         if cur_token.kind != Kind::LPAREN {
@@ -738,7 +851,8 @@ impl Parser {
             if right.is_err() {
                 let mut errs: Vec<Box<dyn ParserError>> = right.err().unwrap();
                 errs.push(Box::new(InfixFunctionError {
-                    detail: "failed to parse on right expression (on parse infix)".to_string(),
+                    detail: "failed to parse on right expression (on parse infix)"
+                        .to_string(),
                     position: self.lexer.get_pos(),
                     kind: errors::InfixFunctionErrorKind::ParseError,
                 }));
@@ -755,9 +869,11 @@ impl Parser {
         if cur_token.kind == Kind::LPAREN {
             let call_expression = self.parse_call_expression(left);
             if call_expression.is_err() {
-                let mut errs: Vec<Box<dyn ParserError>> = call_expression.err().unwrap();
+                let mut errs: Vec<Box<dyn ParserError>> =
+                    call_expression.err().unwrap();
                 errs.push(Box::new(InfixFunctionError {
-                    detail: "failed to parse on call expression (on parse infix)".to_string(),
+                    detail: "failed to parse on call expression (on parse infix)"
+                        .to_string(),
                     position: self.lexer.get_pos(),
                     kind: errors::InfixFunctionErrorKind::ParseError,
                 }));
@@ -777,7 +893,8 @@ impl Parser {
         if exp.is_err() {
             let mut errs = exp.err().unwrap();
             errs.push(Box::new(errors::ParseError {
-                detail: "error on parsing prefix expression (on parse expression)".to_string(),
+                detail: "error on parsing prefix expression (on parse expression)"
+                    .to_string(),
                 position: self.lexer.get_pos(),
             }));
             return Err(errs);
@@ -785,7 +902,9 @@ impl Parser {
 
         let mut exp = exp.ok().unwrap();
 
-        while !self.peek_next_is(&Kind::Semicolon) && precedence < self.peek_precedence() {
+        while !self.peek_next_is(&Kind::Semicolon)
+            && precedence < self.peek_precedence()
+        {
             if !is_infix(&self.peek_next().kind) {
                 return Ok(exp);
             }
@@ -797,7 +916,9 @@ impl Parser {
             if infix.is_err() {
                 let mut errs = infix.err().unwrap();
                 errs.push(Box::new(errors::ParseError {
-                    detail: "error on parsing infix expression (on parse expression)".to_string(),
+                    detail:
+                        "error on parsing infix expression (on parse expression)"
+                            .to_string(),
                     position: self.lexer.get_pos(),
                 }));
                 return Err(errs);

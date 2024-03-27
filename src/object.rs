@@ -4,7 +4,7 @@ use std::{cell::RefCell, fmt::Debug, rc::Weak};
 
 use crate::ast::{BlockStatement, Identifier, Nodetrait};
 
-use self::environment::{Environ, Environment};
+use self::environment::Environment;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Object {
@@ -13,6 +13,7 @@ pub enum Object {
     Bool(Bool),
     String(StringObject),
     Function(Function),
+    Array(Array),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -22,6 +23,7 @@ pub enum ObjectType {
     Bool,
     String,
     Function,
+    Array,
 }
 
 pub trait ObjectTrait {
@@ -37,6 +39,7 @@ impl ObjectTrait for Object {
             Object::Bool(x) => x.get_type(),
             Object::Function(x) => x.get_type(),
             Object::String(x) => x.get_type(),
+            Object::Array(x) => x.get_type(),
         }
     }
 
@@ -47,8 +50,9 @@ impl ObjectTrait for Object {
             Object::Bool(x) => x.to_str(),
             Object::String(x) => x.to_str(),
             Object::Function(x) => x.to_str(),
+            Object::Array(x) => x.to_str(),
         };
-        format!("Object(Enum): {}", inner)
+        inner
     }
 }
 
@@ -116,7 +120,9 @@ pub struct Function {
 
 impl PartialEq for Function {
     fn eq(&self, other: &Self) -> bool {
-        self.identifier == other.identifier && self.args == other.args && self.block == other.block
+        self.identifier == other.identifier
+            && self.args == other.args
+            && self.block == other.block
     }
 }
 
@@ -134,10 +140,34 @@ impl ObjectTrait for Function {
             arguments.push(arg.to_str())
         }
         buf += "(";
-        arguments.join(", ");
+        buf += &arguments.join(", ");
         buf += ") {\n";
         format!("{:?}", self.block);
         buf += "}";
+
+        buf
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Array {
+    pub elements: Vec<Object>,
+}
+
+impl ObjectTrait for Array {
+    fn get_type(&self) -> ObjectType {
+        ObjectType::Array
+    }
+    fn to_str(&self) -> String {
+        let mut buf = String::new();
+
+        let mut elements_buf = Vec::new();
+        for obj in self.elements.iter() {
+            elements_buf.push(obj.to_str())
+        }
+        buf += "[";
+        buf += &elements_buf.join(", ");
+        buf += "]";
 
         buf
     }

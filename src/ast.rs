@@ -24,6 +24,7 @@ pub enum Expression {
     BooleanLiteral(BooleanLiteral),
     StringLiteral(StringLiteral),
     FunctionLiteral(FunctionLiteral),
+    ArrayLiteral(ArrayLiteral),
     InfixExpression(InfixExpression),
     PrefixExpression(PrefixExpression),
     IfExpression(IfExpression),
@@ -68,6 +69,7 @@ impl Nodetrait for Expression {
             Expression::BooleanLiteral(bool) => bool.literal(),
             Expression::FunctionLiteral(flit) => flit.literal(),
             Expression::StringLiteral(slit) => slit.literal(),
+            Expression::ArrayLiteral(alit) => alit.literal(),
             Expression::InfixExpression(ifix) => ifix.literal(),
             Expression::PrefixExpression(pfix) => pfix.literal(),
             Expression::IfExpression(ifx) => ifx.literal(),
@@ -82,6 +84,7 @@ impl Nodetrait for Expression {
             Expression::BooleanLiteral(bool) => bool.to_str(),
             Expression::FunctionLiteral(flit) => flit.to_str(),
             Expression::StringLiteral(slit) => slit.to_str(),
+            Expression::ArrayLiteral(alit) => alit.to_str(),
             Expression::InfixExpression(ifix) => ifix.to_str(),
             Expression::PrefixExpression(pfix) => pfix.to_str(),
             Expression::IfExpression(ifx) => ifx.to_str(),
@@ -244,6 +247,32 @@ impl Nodetrait for FunctionLiteral {
     }
     fn to_node(self) -> Node {
         Expression::FunctionLiteral(self).to_node()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArrayLiteral {
+    pub elements: Vec<Expression>,
+}
+
+impl Nodetrait for ArrayLiteral {
+    fn literal(&self) -> String {
+        "Array".to_string()
+    }
+    fn to_str(&self) -> String {
+        let mut elements = Vec::new();
+        for el in &self.elements {
+            elements.push(el.to_str())
+        }
+
+        let mut buf = String::new();
+        buf.push_str("[");
+        buf.push_str(&elements.join(", "));
+        buf.push_str("]");
+        buf
+    }
+    fn to_node(self) -> Node {
+        Expression::ArrayLiteral(self).to_node()
     }
 }
 

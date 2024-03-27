@@ -35,6 +35,7 @@ fn test_lexer() {
     true && false;
     true || false;
 
+    []
     ";
 
     let mut expects = Vec::new();
@@ -162,6 +163,8 @@ fn test_lexer() {
     expects.push(Token::with(Kind::Or, "||"));
     expects.push(Token::with(Kind::False, "false"));
     expects.push(Token::with(Kind::Semicolon, ";"));
+    expects.push(Token::with(Kind::LBRACKET, "["));
+    expects.push(Token::with(Kind::RBRACKET, "]"));
     expects.push(Token::with(Kind::EOF, "EOF"));
 
     for expect in expects {

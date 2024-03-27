@@ -1,4 +1,8 @@
-use dlang::{ast::Nodetrait, lexer::Lexer, parser::Parser};
+use dlang::{
+    ast::{ArrayLiteral, Nodetrait},
+    lexer::Lexer,
+    parser::Parser,
+};
 
 #[test]
 fn test_let_statement() {
@@ -163,6 +167,36 @@ fn test_function_literal() {
         .to_string(),
         "let hey = fn() {let hello = true;return hello;};".to_string(),
     ));
+    for (input, expect) in tests {
+        let lexer = Lexer::new(input.clone());
+
+        let mut parser = Parser::new(lexer);
+        let res = parser.parse().ok().unwrap();
+        let result = res.statements[0].to_str();
+
+        assert!(result == expect);
+    }
+}
+
+#[test]
+fn test_array_literal() {
+    let mut tests = Vec::new();
+
+    tests.push((
+        "[]".to_string(),
+        ArrayLiteral {
+            elements: Vec::new(),
+        }
+        .to_str(),
+    ));
+
+    tests.push(("[1,2,3,4]".to_string(), "[1, 2, 3, 4]".to_string()));
+
+    tests.push((
+        "[[1,2,3,4],[5,6,7,8]]".to_string(),
+        "[[1, 2, 3, 4], [5, 6, 7, 8]]".to_string(),
+    ));
+
     for (input, expect) in tests {
         let lexer = Lexer::new(input.clone());
 

@@ -28,10 +28,12 @@ pub enum Kind {
     Comma,
     Semicolon,
 
-    LPAREN,
-    RPAREN,
-    LBRACE,
-    RBRACE,
+    LPAREN,   // (
+    RPAREN,   // )
+    LBRACE,   // {
+    RBRACE,   // }
+    LBRACKET, // [
+    RBRACKET, // ]
     // keywords
     Illegal,
     EOF,
@@ -81,6 +83,8 @@ impl Kind {
             Kind::RPAREN => ")",
             Kind::LBRACE => "{",
             Kind::RBRACE => "}",
+            Kind::LBRACKET => "[",
+            Kind::RBRACKET => "]",
             // keywords
             Kind::Illegal => "Illegal",
             Kind::EOF => "EOF",

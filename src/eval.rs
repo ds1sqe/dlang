@@ -11,14 +11,18 @@ use crate::{
     },
     object::{
         environment::{Environ, Environment},
-        is_same_type, Bool, Function, Int, Object, ObjectTrait, ObjectType, Return, StringObject,
+        is_same_type, Array, Bool, Function, Int, Object, ObjectTrait, ObjectType,
+        Return, StringObject,
     },
     token::Kind,
 };
 
 use self::errors::{ArgumentsLength, EvalError};
 
-pub fn evaluate(node: Node, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
+pub fn evaluate(
+    node: Node,
+    env: &Environ<String>,
+) -> Result<Option<Object>, EvalError> {
     match node {
         Node::Program(pro) => eval_program(pro, env),
         Node::Statement(stm) => eval_stm(stm, env),
@@ -26,7 +30,10 @@ pub fn evaluate(node: Node, env: &Environ<String>) -> Result<Option<Object>, Eva
     }
 }
 
-fn eval_program(pro: Program, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
+fn eval_program(
+    pro: Program,
+    env: &Environ<String>,
+) -> Result<Option<Object>, EvalError> {
     let mut result: Result<Option<Object>, EvalError> = Err(EvalError::BlankResult);
 
     for stm in pro.statements {
@@ -56,7 +63,10 @@ fn eval_program(pro: Program, env: &Environ<String>) -> Result<Option<Object>, E
     result
 }
 
-fn eval_stm(stm: Statement, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
+fn eval_stm(
+    stm: Statement,
+    env: &Environ<String>,
+) -> Result<Option<Object>, EvalError> {
     match stm {
         Statement::LetStatement(stm) => {
             let ident = stm.identifier;
@@ -158,7 +168,10 @@ fn eval_stm(stm: Statement, env: &Environ<String>) -> Result<Option<Object>, Eva
     }
 }
 
-fn eval_exp(exp: Expression, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
+fn eval_exp(
+    exp: Expression,
+    env: &Environ<String>,
+) -> Result<Option<Object>, EvalError> {
     match exp {
         Expression::Identifier(id_exp) => {
             let key = id_exp.value;
@@ -170,8 +183,12 @@ fn eval_exp(exp: Expression, env: &Environ<String>) -> Result<Option<Object>, Ev
                 Err(EvalError::IdentifierNotFound(key.clone()))
             }
         }
-        Expression::IntegerLiteral(lit) => Ok(Some(Object::Int(Int { value: lit.value }))),
-        Expression::BooleanLiteral(lit) => Ok(Some(Object::Bool(Bool { value: lit.value }))),
+        Expression::IntegerLiteral(lit) => {
+            Ok(Some(Object::Int(Int { value: lit.value })))
+        }
+        Expression::BooleanLiteral(lit) => {
+            Ok(Some(Object::Bool(Bool { value: lit.value })))
+        }
         Expression::StringLiteral(lit) => {
             Ok(Some(Object::String(StringObject { value: lit.value })))
         }
@@ -188,10 +205,28 @@ fn eval_exp(exp: Expression, env: &Environ<String>) -> Result<Option<Object>, Ev
             // if this function have identifier, bind to environment
             if func.ident.is_some() {
                 fun.identifier = Some(func.ident.as_ref().unwrap().to_str());
-                env.borrow_mut()
-                    .set(func.ident.unwrap().to_str(), Object::Function(fun.clone()));
+                env.borrow_mut().set(
+                    func.ident.unwrap().to_str(),
+                    Object::Function(fun.clone()),
+                );
             }
             Ok(Some(Object::Function(fun)))
+        }
+
+        Expression::ArrayLiteral(arr) => {
+            let mut elements = Vec::new();
+
+            for exp in arr.elements {
+                let obj = eval_exp(exp, env);
+                if obj.is_err() {
+                    return obj;
+                }
+                if obj.as_ref().unwrap().is_none() {
+                    return Err(EvalError::ElementIsNone);
+                }
+                elements.push(obj.unwrap().unwrap())
+            }
+            Ok(Some(Object::Array(Array { elements })))
         }
 
         Expression::InfixExpression(exp) => eval_infix_exp(exp, env),
@@ -262,14 +297,20 @@ fn eval_infix_exp(
             let result = Some(result.unwrap());
             Ok(result)
         }
-        ObjectType::Function | ObjectType::Return => Err(EvalError::InvalidInfixOperationTarget(
-            left.get_type(),
-            exp.operator.kind,
-        )),
+        ObjectType::Array | ObjectType::Function | ObjectType::Return => {
+            Err(EvalError::InvalidInfixOperationTarget(
+                left.get_type(),
+                exp.operator.kind,
+            ))
+        }
     }
 }
 
-fn eval_infix_int_exp(left: Int, operator: Kind, right: Int) -> Result<Object, EvalError> {
+fn eval_infix_int_exp(
+    left: Int,
+    operator: Kind,
+    right: Int,
+) -> Result<Object, EvalError> {
     match operator {
         Kind::Plus => {
             let value = left.value + right.value;
@@ -322,7 +363,11 @@ fn eval_infix_int_exp(left: Int, operator: Kind, right: Int) -> Result<Object, E
     }
 }
 
-fn eval_infix_bool_exp(left: Bool, operator: Kind, right: Bool) -> Result<Object, EvalError> {
+fn eval_infix_bool_exp(
+    left: Bool,
+    operator: Kind,
+    right: Bool,
+) -> Result<Object, EvalError> {
     match operator {
         Kind::And | Kind::Bit_And => Ok(Object::Bool(Bool {
             value: left.value && right.value,
@@ -405,9 +450,13 @@ fn eval_prefix_exp(
             }
             Ok(Some(result.unwrap()))
         }
-        ObjectType::Function | ObjectType::Return | ObjectType::String => Err(
-            EvalError::InvalidPrefixOperationTarget(obj.get_type(), operator),
-        ),
+        ObjectType::Array
+        | ObjectType::Function
+        | ObjectType::Return
+        | ObjectType::String => Err(EvalError::InvalidPrefixOperationTarget(
+            obj.get_type(),
+            operator,
+        )),
     }
 }
 
@@ -432,7 +481,10 @@ fn eval_prefix_bool_exp(operator: Kind, right: Bool) -> Result<Object, EvalError
     }
 }
 
-fn eval_if_exp(exp: IfExpression, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
+fn eval_if_exp(
+    exp: IfExpression,
+    env: &Environ<String>,
+) -> Result<Option<Object>, EvalError> {
     let condition_val = eval_exp(*exp.condition, env);
     if condition_val.is_err() {
         return condition_val;
@@ -456,7 +508,10 @@ fn eval_if_exp(exp: IfExpression, env: &Environ<String>) -> Result<Option<Object
     Ok(None)
 }
 
-fn eval_call_exp(exp: CallExpression, env: &Environ<String>) -> Result<Option<Object>, EvalError> {
+fn eval_call_exp(
+    exp: CallExpression,
+    env: &Environ<String>,
+) -> Result<Option<Object>, EvalError> {
     let func = eval_exp(*exp.function, env);
 
     if func.is_err() {
@@ -502,7 +557,10 @@ fn eval_function_parameters(
     Ok(result)
 }
 
-fn apply_function(fun: Function, args: Vec<Object>) -> Result<Option<Object>, EvalError> {
+fn apply_function(
+    fun: Function,
+    args: Vec<Object>,
+) -> Result<Option<Object>, EvalError> {
     if args.len() != fun.args.len() {
         return Err(EvalError::FunctionArgLengthNotMatched(ArgumentsLength {
             function_args: fun.args.len(),
@@ -516,7 +574,8 @@ fn apply_function(fun: Function, args: Vec<Object>) -> Result<Option<Object>, Ev
         return Err(extended_env.unwrap_err());
     }
 
-    let evaluated = eval_stm(Statement::BlockStatement(fun.block), &extended_env.unwrap());
+    let evaluated =
+        eval_stm(Statement::BlockStatement(fun.block), &extended_env.unwrap());
 
     if evaluated.is_err() {
         return evaluated;
@@ -526,7 +585,10 @@ fn apply_function(fun: Function, args: Vec<Object>) -> Result<Option<Object>, Ev
     Ok(unwrap_return_value(evaluated))
 }
 
-fn extend_function_env(fun: Function, args: Vec<Object>) -> Result<Environ<String>, EvalError> {
+fn extend_function_env(
+    fun: Function,
+    args: Vec<Object>,
+) -> Result<Environ<String>, EvalError> {
     let opt_rc = &fun.env.upgrade();
 
     if opt_rc.is_none() {

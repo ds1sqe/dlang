@@ -19,6 +19,7 @@ pub enum EvalError {
 
     ConditionIsNone,
     FunctionIsNone,
+    ElementIsNone,
 
     IdentifierNotFound(String),
 
