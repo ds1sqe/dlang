@@ -6,8 +6,8 @@ use std::cell::RefCell;
 
 use crate::{
     ast::{
-        CallExpression, Expression, IfExpression, InfixExpression, Node, Nodetrait,
-        PrefixExpression, Program, Statement,
+        CallExpression, Expression, IfExpression, IndexExpression, InfixExpression,
+        Node, Nodetrait, PrefixExpression, Program, Statement,
     },
     object::{
         environment::{Environ, Environment},
@@ -233,6 +233,7 @@ fn eval_exp(
         Expression::PrefixExpression(exp) => eval_prefix_exp(exp, env),
         Expression::IfExpression(exp) => eval_if_exp(exp, env),
         Expression::CallExpression(exp) => eval_call_exp(exp, env),
+        Expression::IndexExpression(exp) => eval_call_exp(exp, env),
     }
 }
 
@@ -618,5 +619,27 @@ fn unwrap_return_value(obj: Option<Object>) -> Option<Object> {
             None => None,
         },
         __ => Some(obj),
+    }
+}
+
+fn eval_index_exp(
+    exp: IndexExpression,
+    env: &Environ<String>,
+) -> Result<Option<Object>, EvalError> {
+    let left_rst = eval_exp(*exp.left, env);
+
+    if left_rst.is_err() {
+        return left_rst;
+    }
+    if left_rst.unwrap().is_none() {
+        return Err(EvalError::ArrayIsNone);
+    }
+    let left = left_rst.unwrap().unwrap();
+
+    match left {
+        Object::Array(arr) => {
+            // arr.elements
+        }
+        not_array => Err(EvalError::NotArray),
     }
 }

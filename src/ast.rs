@@ -29,6 +29,7 @@ pub enum Expression {
     PrefixExpression(PrefixExpression),
     IfExpression(IfExpression),
     CallExpression(CallExpression),
+    IndexExpression(IndexExpression),
 }
 
 pub trait Nodetrait {
@@ -74,6 +75,7 @@ impl Nodetrait for Expression {
             Expression::PrefixExpression(pfix) => pfix.literal(),
             Expression::IfExpression(ifx) => ifx.literal(),
             Expression::CallExpression(cexp) => cexp.literal(),
+            Expression::IndexExpression(idx) => idx.literal(),
         }
     }
 
@@ -89,6 +91,7 @@ impl Nodetrait for Expression {
             Expression::PrefixExpression(pfix) => pfix.to_str(),
             Expression::IfExpression(ifx) => ifx.to_str(),
             Expression::CallExpression(cexp) => cexp.to_str(),
+            Expression::IndexExpression(idx) => idx.to_str(),
         }
     }
 
@@ -480,5 +483,28 @@ impl Nodetrait for CallExpression {
     }
     fn to_node(self) -> Node {
         Expression::CallExpression(self).to_node()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct IndexExpression {
+    pub token: token::Token, // Token::LBRACKET
+    pub left: Box<Expression>,
+    pub index: Box<Expression>,
+}
+impl Nodetrait for IndexExpression {
+    fn literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn to_str(&self) -> String {
+        let mut buf = String::new();
+        buf.push_str(&self.left.to_str());
+        buf.push_str("[");
+        buf.push_str(&self.index.to_str());
+        buf.push_str("]");
+        buf
+    }
+    fn to_node(self) -> Node {
+        Expression::IndexExpression(self).to_node()
     }
 }

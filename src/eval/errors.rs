@@ -20,10 +20,12 @@ pub enum EvalError {
     ConditionIsNone,
     FunctionIsNone,
     ElementIsNone,
+    ArrayIsNone,
 
     IdentifierNotFound(String),
 
     NotSameType,
+    NotArray,
 
     FunctionArgLengthNotMatched(ArgumentsLength),
 
