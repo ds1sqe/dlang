@@ -27,6 +27,10 @@ pub enum EvalError {
     NotSameType,
     NotArray,
 
+    IndexIsNotAInt(Object),
+    IndexIsNegative(Object),
+    IndexOutOfRange(IndexErrorDetail),
+
     FunctionArgLengthNotMatched(ArgumentsLength),
 
     DivideWithZero,
@@ -46,5 +50,11 @@ pub enum EvalError {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ArgumentsLength {
     pub function_args: usize,
+    pub called_with: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct IndexErrorDetail {
+    pub array_length: usize,
     pub called_with: usize,
 }

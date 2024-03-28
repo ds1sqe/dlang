@@ -2,8 +2,8 @@ use crate::{
     ast::{
         ArrayLiteral, BlockStatement, BooleanLiteral, CallExpression, Expression,
         ExpressionStatement, FunctionLiteral, Identifier, IfExpression,
-        InfixExpression, IntegerLiteral, LetStatement, PrefixExpression, Program,
-        ReturnStatement, Statement, StringLiteral,
+        IndexExpression, InfixExpression, IntegerLiteral, LetStatement,
+        PrefixExpression, Program, ReturnStatement, Statement, StringLiteral,
     },
     lexer::Lexer,
     parser::errors::InfixFunctionError,
@@ -841,47 +841,76 @@ impl Parser {
     ) -> Result<Expression, Vec<Box<dyn ParserError>>> {
         let cur_token = self.cur_token.clone();
 
-        if cur_token.kind != Kind::LPAREN {
-            let operator = self.cur_token.clone();
-            let cur_precedence = self.cur_precedence();
-
-            self.next();
-
-            let right = self.parse_expression(cur_precedence);
-            if right.is_err() {
-                let mut errs: Vec<Box<dyn ParserError>> = right.err().unwrap();
-                errs.push(Box::new(InfixFunctionError {
-                    detail: "failed to parse on right expression (on parse infix)"
-                        .to_string(),
-                    position: self.lexer.get_pos(),
-                    kind: errors::InfixFunctionErrorKind::ParseError,
-                }));
-                return Err(errs);
+        match cur_token.kind {
+            Kind::LPAREN => {
+                let call_expression = self.parse_call_expression(left);
+                if call_expression.is_err() {
+                    let mut errs: Vec<Box<dyn ParserError>> =
+                        call_expression.err().unwrap();
+                    errs.push(Box::new(InfixFunctionError {
+                        detail:
+                            "failed to parse on call expression (on parse infix)"
+                                .to_string(),
+                        position: self.lexer.get_pos(),
+                        kind: errors::InfixFunctionErrorKind::ParseError,
+                    }));
+                    return Err(errs);
+                }
+                return Ok(Expression::CallExpression(call_expression.unwrap()));
             }
-            let right = right.ok().unwrap();
-            return Ok(Expression::InfixExpression(InfixExpression {
-                token: cur_token,
-                left: Box::new(left),
-                operator,
-                right: Box::new(right),
-            }));
-        }
-        if cur_token.kind == Kind::LPAREN {
-            let call_expression = self.parse_call_expression(left);
-            if call_expression.is_err() {
-                let mut errs: Vec<Box<dyn ParserError>> =
-                    call_expression.err().unwrap();
-                errs.push(Box::new(InfixFunctionError {
-                    detail: "failed to parse on call expression (on parse infix)"
-                        .to_string(),
-                    position: self.lexer.get_pos(),
-                    kind: errors::InfixFunctionErrorKind::ParseError,
-                }));
-                return Err(errs);
+            Kind::LBRACKET => {
+                let token = self.cur_token.clone();
+                let cur_precedence = self.cur_precedence();
+
+                self.next();
+
+                let index = self.parse_expression(cur_precedence);
+                if index.is_err() {
+                    let mut errs: Vec<Box<dyn ParserError>> = index.err().unwrap();
+                    errs.push(Box::new(InfixFunctionError {
+                        detail:
+                            "failed to parse on index expression (on parse index)"
+                                .to_string(),
+                        position: self.lexer.get_pos(),
+                        kind: errors::InfixFunctionErrorKind::ParseError,
+                    }));
+                    return Err(errs);
+                }
+                let index = index.ok().unwrap();
+
+                Ok(Expression::IndexExpression(IndexExpression {
+                    token,
+                    left: Box::new(left),
+                    index: Box::new(index),
+                }))
             }
-            return Ok(Expression::CallExpression(call_expression.unwrap()));
+            not_matched => {
+                let operator = self.cur_token.clone();
+                let cur_precedence = self.cur_precedence();
+
+                self.next();
+
+                let right = self.parse_expression(cur_precedence);
+                if right.is_err() {
+                    let mut errs: Vec<Box<dyn ParserError>> = right.err().unwrap();
+                    errs.push(Box::new(InfixFunctionError {
+                        detail:
+                            "failed to parse on right expression (on parse infix)"
+                                .to_string(),
+                        position: self.lexer.get_pos(),
+                        kind: errors::InfixFunctionErrorKind::ParseError,
+                    }));
+                    return Err(errs);
+                }
+                let right = right.ok().unwrap();
+                return Ok(Expression::InfixExpression(InfixExpression {
+                    token: cur_token,
+                    left: Box::new(left),
+                    operator,
+                    right: Box::new(right),
+                }));
+            }
         }
-        unreachable!()
     }
 
     fn parse_expression(

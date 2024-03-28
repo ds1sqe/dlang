@@ -17,7 +17,7 @@ use crate::{
     token::Kind,
 };
 
-use self::errors::{ArgumentsLength, EvalError};
+use self::errors::{ArgumentsLength, EvalError, IndexErrorDetail};
 
 pub fn evaluate(
     node: Node,
@@ -233,7 +233,7 @@ fn eval_exp(
         Expression::PrefixExpression(exp) => eval_prefix_exp(exp, env),
         Expression::IfExpression(exp) => eval_if_exp(exp, env),
         Expression::CallExpression(exp) => eval_call_exp(exp, env),
-        Expression::IndexExpression(exp) => eval_call_exp(exp, env),
+        Expression::IndexExpression(exp) => eval_index_exp(exp, env),
     }
 }
 
@@ -631,15 +631,42 @@ fn eval_index_exp(
     if left_rst.is_err() {
         return left_rst;
     }
-    if left_rst.unwrap().is_none() {
+    if left_rst.as_ref().unwrap().is_none() {
         return Err(EvalError::ArrayIsNone);
     }
     let left = left_rst.unwrap().unwrap();
 
-    match left {
-        Object::Array(arr) => {
-            // arr.elements
-        }
-        not_array => Err(EvalError::NotArray),
+    if left.get_type() != ObjectType::Array {
+        return Err(EvalError::NotArray);
     }
+
+    let index_rst = eval_exp(*exp.index, env);
+    if index_rst.is_err() {
+        return index_rst;
+    }
+    if index_rst.as_ref().unwrap().is_none() {
+        return Err(EvalError::ArrayIsNone);
+    }
+    let index = index_rst.unwrap().unwrap();
+    if index.get_type() != ObjectType::Int {
+        return Err(EvalError::IndexIsNotAInt(index));
+    }
+
+    let Object::Array(arr) = left else {unreachable!()};
+    let Object::Int(idx) = index else {unreachable!()};
+
+    if idx.value < 0 {
+        return Err(EvalError::IndexIsNegative(index));
+    }
+
+    let idx = idx.value as usize;
+
+    if arr.elements.len() < idx {
+        return Err(EvalError::IndexOutOfRange(IndexErrorDetail {
+            array_length: arr.elements.len(),
+            called_with: idx as usize,
+        }));
+    }
+
+    return Ok(Some(arr.elements[idx as usize].clone()));
 }
